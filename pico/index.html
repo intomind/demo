@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mind-Controlled Microcontroller · IntoMind Demo Suite</title>
+<meta name="description" content="Run your Mind-Controlled Light Switch on a Raspberry Pi Pico 2 W. One file on the board, and it connects to your IntoMind One by itself and turns its LED on while your custom AI head reads On. No computer in the room.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.dataset.theme = new URLSearchParams(location.search).get("theme") || localStorage.getItem("intomind-demo-theme") || "dark";</script>
+<style>
+  body { overflow: auto; }
+  .chrome { position: absolute; }
+  .foot { display: none; }
+  .guide { --tile: #0b0d12; --soft: rgba(243,241,234,.62); color: var(--ink); }
+  html[data-theme="light"] .guide { --tile: #e4e4de; --soft: rgba(17,17,17,.62); }
+  .guide .hero { max-width: 1280px; margin: 0 auto; padding: calc(var(--pad) + 72px) var(--pad) 0; }
+  .guide .eb { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--signal); margin: 0; text-wrap: balance; }
+  .guide h1 { font-size: clamp(38px, 5.2vw, 72px); letter-spacing: -.048em; font-weight: 640; line-height: 1; margin: 14px 0 22px; max-width: 1100px; text-wrap: balance; }
+  .guide .lede { font-size: clamp(16px, 1.45vw, 19px); line-height: 1.55; color: var(--ink2); max-width: 780px; margin: 0; }
+  .guide .heroPic { position: relative; height: clamp(300px, 46vw, 600px); margin-top: 34px; }
+  .guide canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .guide section { max-width: 1280px; margin: 0 auto; padding: 56px var(--pad); border-top: 1px solid var(--rule); }
+  .guide h2 { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 24px; font-weight: 500; }
+  .guide .need { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .guide .need p { border-top: 1px solid var(--rule); padding-top: 14px; margin: 0; font-size: 16px; line-height: 1.45; color: var(--ink2); }
+  .guide .band { display: grid; grid-template-columns: 1.3fr 1fr; gap: 52px; align-items: center; padding: 30px 0; }
+  .guide .band + .band { border-top: 1px solid var(--rule); }
+  .guide .band.flip .pic { order: 2; }
+  .guide .band .pic { position: relative; aspect-ratio: 16 / 9; background: var(--tile); }
+  .guide .band h3 { font-size: clamp(24px, 2.3vw, 31px); letter-spacing: -.035em; font-weight: 640; margin: 0 0 14px; display: flex; gap: 14px; align-items: baseline; }
+  .guide .band h3 i { font-style: normal; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: .1em; color: var(--signal); }
+  .guide .band p { font-size: 17px; line-height: 1.55; color: var(--ink2); margin: 0 0 12px; }
+  .guide .band p.see { color: var(--soft); }
+  .guide .band p.see b { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--signal); margin-right: .6em; }
+  .guide .band .pill { display: inline-block; margin: 6px 0 16px; text-decoration: none; }
+  .guide .list div { display: grid; grid-template-columns: 320px 1fr; gap: 24px; padding: 16px 0; border-top: 1px solid var(--rule); font-size: 16px; line-height: 1.5; color: var(--ink2); }
+  .guide .list b { color: var(--ink); font-weight: 600; }
+  .guide .build p { font-size: 17px; line-height: 1.55; color: var(--ink2); max-width: 780px; margin: 0 0 12px; }
+  .guide code { font-family: var(--mono); font-size: .88em; color: var(--ink); }
+  .guide a { color: var(--ink); }
+  .guide .end { max-width: 1280px; margin: 0 auto; padding: 32px var(--pad) 60px; display: flex; justify-content: space-between; gap: 24px; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--rule); }
+  .guide .end a { color: var(--muted); }
+  .guide .end a:hover { color: var(--ink); }
+  @media (max-width: 900px) {
+    .guide .need { grid-template-columns: 1fr 1fr; }
+    .guide .band { grid-template-columns: 1fr; gap: 18px; }
+    .guide .band.flip .pic { order: 0; }
+    .guide .list div { grid-template-columns: 1fr; gap: 4px; }
+  }
+  @media (max-width: 560px) {
+    .guide .need { grid-template-columns: 1fr; gap: 0; }
+    .guide .need p { padding: 12px 0; }
+    .guide section { padding: 40px var(--pad); }
+    .guide .band p { font-size: 15px; }
+    .guide .end { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<main class="guide">
+  <div class="hero">
+    <p class="eb">Mind-Controlled Microcontroller</p>
+    <h1>Your Mind-Controlled Light Switch, on a Raspberry Pi Pico 2 W.</h1>
+    <p class="lede">On the <a href="../light-switch/">Mind-Controlled Light Switch</a> demo you teach a custom AI head two states, resting and a thought you hold, and install it on your IntoMind One, which runs it on its own chip. One small program lets a Raspberry Pi Pico 2 W, a microcontroller board with Bluetooth and an LED, connect to your IntoMind One by itself and turn its LED on while your custom AI head reads On. No computer in the room.</p>
+    <div class="heroPic"><canvas data-draw="system" aria-hidden="true"></canvas></div>
+  </div>
+
+  <section>
+    <h2>You need</h2>
+    <div class="need">
+      <p>A Raspberry Pi Pico 2 W. The Pico 2 without the W has no Bluetooth.</p>
+      <p>A micro USB cable that carries data. Some cables only charge.</p>
+      <p>A computer with a USB port.</p>
+      <p>Your IntoMind One, with a custom AI head installed from the Mind-Controlled Light Switch demo.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Steps</h2>
+    <div class="band">
+      <div class="pic"><canvas data-draw="step" data-n="1" aria-hidden="true"></canvas></div>
+      <div><h3><i>01</i>Teach your custom AI head</h3>
+        <p>On the <a href="../light-switch/">Mind-Controlled Light Switch</a> demo, teach your two states, then press <b>Run it on your IntoMind One</b>. Your custom AI head, the small model that tells your two states apart, is now installed on your IntoMind One.</p>
+        <p class="see"><b>You should see</b>The board drawn on the demo lighting up while you hold your On thought.</p></div>
+    </div>
+    <div class="band flip">
+      <div class="pic"><canvas data-draw="step" data-n="2" aria-hidden="true"></canvas></div>
+      <div><h3><i>02</i>Download the program</h3>
+        <p>One file holds the whole program for the board, ready to run. Its source is on this site for anyone who wants to change it.</p>
+        <a class="pill primary" href="light-switch-pico-2-w.uf2" download>Download the program</a>
+        <p class="see"><b>You should see</b>A file named light-switch-pico-2-w.uf2.</p></div>
+    </div>
+    <div class="band">
+      <div class="pic"><canvas data-draw="step" data-n="3" aria-hidden="true"></canvas></div>
+      <div><h3><i>03</i>Put it on the board</h3>
+        <p>Hold the white <b>BOOTSEL</b> button while you plug the board into your computer, then let go. Drag the file onto the drive that appears.</p>
+        <p class="see"><b>You should see</b>A drive named RP2350 that closes by itself once the file is on it, then the LED blinking once a second. A Mac may warn that the disk was not ejected properly. That is expected.</p></div>
+    </div>
+    <div class="band flip">
+      <div class="pic"><canvas data-draw="step" data-n="4" aria-hidden="true"></canvas></div>
+      <div><h3><i>04</i>Turn on your IntoMind One</h3>
+        <p>Take it off its charger and put it on, and close any tab connected to it. The first time, the board pairs with it, and from then on it remembers it.</p>
+        <p class="see"><b>You should see</b>The LED stops blinking, then comes on while you hold your On thought.</p></div>
+    </div>
+    <div class="band">
+      <div class="pic"><canvas data-draw="step" data-n="5" aria-hidden="true"></canvas></div>
+      <div><h3><i>05</i>Put the board anywhere</h3>
+        <p>Unplug the board from the computer and power it from any USB charger. It finds your IntoMind One by itself whenever it has power.</p>
+        <p class="see"><b>You should see</b>The LED, saying one of the six things shown beside the board.</p></div>
+    </div>
+  </section>
+
+  <section class="list">
+    <h2>If it does not work</h2>
+    <div><b>No drive appears</b><span>The cable may only charge, or BOOTSEL was let go too soon. Try another cable, and keep holding the button until the drive shows.</span></div>
+    <div><b>The drive closes, but the LED never blinks</b><span>The file did not land. Hold BOOTSEL, plug in again, and drag the file once more.</span></div>
+    <div><b>One short blink a second, and it never stops</b><span>Your IntoMind One is off, or another tab is connected to it. Close the other tab, or switch your IntoMind One off and on again.</span></div>
+    <div><b>Two short blinks a second</b><span>Your IntoMind One is on its charger, and it sends no EEG while it charges. Unplug it.</span></div>
+    <div><b>Three short blinks a second</b><span>No custom AI head is installed on your IntoMind One. Do step 01.</span></div>
+    <div><b>Fast blinking</b><span>Your IntoMind One lost the signal for a moment. Settle it so every electrode touches the skin.</span></div>
+    <div><b>The board goes dark on a power bank</b><span>Many power banks switch off when so little power is drawn. Use a wall charger, or a power bank with an always-on mode.</span></div>
+    <div><b>The light trails your thought</b><span>That is expected. Your custom AI head reads four seconds of EEG at a time, so the light changes a reading or two after you do.</span></div>
+  </section>
+
+  <section class="build">
+    <h2>Build on it</h2>
+    <p>The program is plain C on Raspberry Pi's own toolkit for the board, and it marks where your own code goes. The code to switch a pin is already there, commented out: pin GP15, the board's pin 20, with ground on pin 18. Uncomment it and rebuild, and the pin goes high, to 3.3 volts, while your custom AI head reads On: a signal any circuit, robot or project of your own can act on.</p>
+    <p>The source is <a href="board/main.c"><code>board/main.c</code></a>, and the build steps are in <a href="board/README.md"><code>board/README.md</code></a>.</p>
+  </section>
+
+  <div class="end"><a href="board/main.c">Source · board/main.c</a><span>Unplug the USB-C cable before wearing your IntoMind One.</span><span id="address"></span></div>
+</main>
+<script type="module" src="main.js"></script>
+</body>
+</html>

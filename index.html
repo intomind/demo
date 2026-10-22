@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IntoMind Demo Suite</title>
+<meta name="description" content="Five things to do with an IntoMind One from a web page: grow an Alpha Flower, read your brain's age and sex from the open heads, switch a light with a thought, and fly a ship by looking.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/site.css">
+<script>document.documentElement.dataset.theme = new URLSearchParams(location.search).get("theme") || localStorage.getItem("intomind-demo-theme") || "dark";</script>
+<style>
+.home { position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: var(--pad); }
+.home .note { margin: 14px 0 0; text-align: right; }
+.hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.hero h1 { min-width: 0; }
+.hero .theme { flex-shrink: 0; margin-top: 6px; }
+.hero h1 { font-size: clamp(40px, 7vw, 120px); font-weight: 650; letter-spacing: -.055em; line-height: .9; margin: 0; }
+.hero h1 span { color: var(--muted); font-weight: 500; margin-left: .3em; white-space: nowrap; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-rows: repeat(6, minmax(0, 1fr)); min-height: 0; align-self: stretch; margin-top: clamp(16px, 3vh, 40px); }
+.list li { border-top: 1px solid var(--rule); display: flex; align-items: center; }
+.list li:last-child { border-bottom: 1px solid var(--rule); }
+.list a { display: grid; grid-template-columns: clamp(44px, 6vw, 90px) 1fr auto; align-items: center; width: 100%; text-decoration: none; padding: 0; font-size: clamp(22px, min(3.6vw, 6.4vh), 64px); font-weight: 620; letter-spacing: -.045em; color: var(--ink2); transition: color .2s; }
+.list a:hover { color: var(--ink); }
+.list a i { font-style: normal; font-size: clamp(13px, 1.1vw, 17px); font-weight: 500; letter-spacing: -.01em; color: var(--muted); opacity: 0; transition: opacity .25s; text-align: right; max-width: 38vw; line-height: 1.3; }
+.list a:hover i { opacity: 1; }
+@media (max-width: 900px) { .list a i { display: none; } }
+@media (max-width: 640px) { .hero h1 span { display: block; margin-left: 0; } }
+.list a b { font-family: var(--mono); font-weight: 500; font-size: 12px; letter-spacing: .08em; color: var(--signal); }
+</style>
+</head>
+<body>
+<main class="home">
+  <div class="hero">
+    <h1>IntoMind<span>Demo Suite</span></h1>
+    <button class="theme" type="button" aria-label="Light or dark"><svg class="sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg><svg class="moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z"/></svg></button>
+  </div>
+  <ol class="list">
+    <li><a href="alpha-flower/"><b>01</b>Alpha Flower<i>Create fractal art from your unique alpha rhythm when you close your eyes.</i></a></li>
+    <li><a href="flight-simulator/"><b>02</b>BCI Flight Simulator<i>Fly your ship through space and collect coins using EEG from your visual cortex.</i></a></li>
+    <li><a href="age-detector/"><b>03</b>Age Detector<i>Estimate your age from EEG signal using the open source AI embedded on IntoMind One.</i></a></li>
+    <li><a href="biological-sex-detector/"><b>04</b>Biological Sex Detector<i>Estimate a score between male and female using the open source AI on IntoMind One.</i></a></li>
+    <li><a href="light-switch/"><b>05</b>Mind-Controlled Light Switch<i>Teach a custom AI head two unique states, and run it on your IntoMind One.</i></a></li>
+    <li><a href="pico/"><b>06</b>Mind-Controlled Microcontroller<i>Run your Mind-Controlled Light Switch on a Raspberry Pi Pico 2 W, with no computer in the room.</i></a></li>
+  </ol>
+  <p class="note small">Unplug the USB-C cable before wearing your IntoMind One.</p>
+</main>
+<script type="module" src="main.js"></script>
+</body>
+</html>

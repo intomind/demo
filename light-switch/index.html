@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mind-Controlled Light Switch · IntoMind Demo Suite</title>
+<meta name="description" content="Teach a custom AI head two states in your browser, install it on your IntoMind One, and a Raspberry Pi Pico 2 W lights its LED while it reads On.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="../assets/site.css">
+<script>document.documentElement.dataset.theme = new URLSearchParams(location.search).get("theme") || localStorage.getItem("intomind-demo-theme") || "dark";</script>
+</head>
+<body>
+<canvas class="stage" id="stage"></canvas>
+<div class="big hide" id="big"><div><h1 id="word"></h1><small id="sub"></small></div></div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

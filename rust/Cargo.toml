@@ -1,0 +1,26 @@
+[package]
+name = "intomind-demos"
+version = "1.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+publish = false
+description = "The IntoMind Demo Suite's demos as Rust programs, on the published intomind crate."
+
+[dependencies]
+intomind = "1.4.0"
+btleplug = "0.13"
+futures = "0.3"
+serde_json = "1"
+sha2 = "0.10"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+uuid = "1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# btleplug reaches the system's Bluetooth service through libdbus. Building
+# libdbus from its source here means no development package is needed first.
+dbus = { version = "0.9", features = ["vendored"] }
+# The system pairs only when a program answers for the computer, so the
+# pairing step registers an agent of its own, as the Python package does.
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+# The Raspberry Pi's pins, for light_switch_pi.
+rppal = "0.22"
