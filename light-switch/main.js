@@ -60,6 +60,8 @@ const st = {
   stamp: null,
   /** The head this page installed during this visit, which it replaces without asking. */
   installed: null,
+  /** Whether the IntoMind One holds a usable custom AI head in the slot, read from it. */
+  onDevice: false,
   dim: 1,
   t0: performance.now(),
 };
@@ -70,6 +72,7 @@ const stopBtn = ui.opt("Stop", stopRun);
 const againBtn = ui.opt("Teach again", again);
 const saveBtn = ui.opt("Save", saveCard);
 const loadBtn = ui.opt("Install a saved head", () => picker.click());
+const removeBtn = ui.opt("Remove it from your IntoMind One", removeCard);
 const picker = Object.assign(document.createElement("input"), { type: "file", accept: ".imh", hidden: true });
 picker.addEventListener("change", () => { const f = picker.files?.[0]; picker.value = ""; if (f) installSaved(f); });
 document.body.append(picker);
@@ -90,13 +93,25 @@ function render() {
   show(againBtn, !idle && st.phase !== "teaching");
   show(saveBtn, st.head !== null && !st.loaded && st.windows.length > 0 && st.phase !== "teaching");
   show(loadBtn, on && st.phase !== "teaching");
+  show(removeBtn, on && st.onDevice && st.phase !== "teaching");
   show(picoLink, st.phase !== "teaching");
   if (idle && on) ui.say(READY);
 }
 
-ui.connect(device, { onConnect: render, onDisconnect: () => { st.abort = true; st.phase = st.head ? "trained" : "idle"; st.target = 0; render(); ui.say("Connect your IntoMind One."); } });
+ui.connect(device, { onConnect: () => { render(); refreshSlot(); }, onDisconnect: () => { st.abort = true; st.phase = st.head ? "trained" : "idle"; st.target = 0; st.onDevice = false; render(); ui.say("Connect your IntoMind One."); } });
+
+/** Whether the slot on the IntoMind One holds a custom AI head, so Remove shows only when there is one. */
+async function refreshSlot() {
+  try {
+    const there = (await device.heads()).heads.find((h) => h.slot === SLOT);
+    st.onDevice = !!there?.usable;
+  } catch {
+    st.onDevice = false;
+  }
+  render();
+}
 device.on((e) => {
-  if (e.type === "auto") { ui.closeCard(); render(); if (device.q?.has("teach")) teach(); }
+  if (e.type === "auto") { ui.closeCard(); render(); refreshSlot(); if (device.q?.has("teach")) teach(); }
   if (e.type === "embedding" && st.phase === "teaching" && st.current !== null) {
     const c = st.current;
     if (c.settle > 0) { c.settle -= 1; st.dropped += 1; }
@@ -209,6 +224,7 @@ async function run() {
     }
     if (!same) await device.upload(SLOT, blob, ({ taken, total }) => ui.say(`Installing your custom AI head on your IntoMind One: ${taken} of ${total} bytes.`));
     st.installed = id;
+    st.onDevice = true;
     await device.predictions(SLOT);
   } catch (e) {
     ui.warn(e.noHead ? "Your IntoMind One could not run that custom AI head." : e.message);
@@ -252,6 +268,29 @@ async function installSaved(f) {
   await run();
 }
 
+/** Ask, then take the custom AI head out of the slot on the IntoMind One. A head taught here stays on this page to run or save again. */
+function removeCard() {
+  ui.card({
+    title: "Remove your custom AI head?",
+    html: `<p>This takes the custom AI head out of slot ${SLOT} on your IntoMind One. It holds no recording of your EEG, and it can only come back from a saved file or by teaching again.</p>`,
+    actions: [{ label: "Remove it", primary: true, onClick: removeHead }, { label: "Cancel" }],
+  });
+}
+
+async function removeHead() {
+  try {
+    if (st.phase === "running") { st.phase = "stopped"; st.target = 0; }
+    await device.removeHead(SLOT);
+  } catch (e) {
+    ui.warn(e.message);
+    return;
+  }
+  st.installed = null;
+  st.onDevice = false;
+  render();
+  ui.say(`Removed. Your IntoMind One holds no custom AI head in slot ${SLOT}.${st.head ? " Yours is still on this page, to run or save." : ""}`);
+}
+
 /** A head installed from a file is already saved, so Save is only for a head taught here. */
 function saveCard() {
   ui.card({
@@ -281,7 +320,7 @@ async function stopRun() {
   st.phase = "stopped";
   st.target = 0;
   render();
-  ui.say("Stopped. Your custom AI head stays on your IntoMind One.");
+  ui.say("Stopped. Your custom AI head stays on your IntoMind One until you remove it.");
 }
 
 function again() {

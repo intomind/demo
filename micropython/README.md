@@ -43,8 +43,8 @@ The file has two functions that are yours:
 - `on_switch(on)` runs whenever the decision changes, and with `False`
   when the link to your IntoMind One is lost.
 - `on_reading(score, clean)` runs for every reading, every few seconds,
-  with your custom AI head's score from 0 to 1 and whether the signal was
-  clean.
+  with your custom AI head's score, near 0 for Off and near 1 for On, and
+  whether the signal was clean.
 
 The code to drive a pin is already there, commented out: GP15, the board's
 pin 20, with ground on pin 18. Uncomment the two lines and the pin goes to

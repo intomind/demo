@@ -44,8 +44,8 @@ def on_switch(on):
 
 def on_reading(score, clean):
     # Runs for every reading, every few seconds: your custom AI head's score,
-    # from 0 to 1, and whether the signal behind it was clean. For anything
-    # finer than on and off.
+    # near 0 for Off and near 1 for On, and whether the signal behind it was
+    # clean. For anything finer than on and off.
     pass
 
 

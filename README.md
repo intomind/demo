@@ -35,7 +35,7 @@ in the room. Keys while it runs: c closed, f focus, j jaw, arrows look.
 | `python/` | the demos as scripts, on the published `intomind` package |
 | `rust/` | the demos as Rust programs, on the published `intomind` crate |
 | `micropython/` | the Mind-Controlled Microcontroller as a MicroPython program, on the `intomind` library for MicroPython |
-| `assets/` | the stylesheet, and Geist and Geist Mono under the SIL Open Font License |
+| `assets/` | the stylesheet, and Geist and Geist Mono under the SIL Open Font License, with Geist's barred capital I made its default so that an I never reads as a lowercase l |
 | `tests/` | Node and Python tests for the library and the MicroPython program, and `shoot.mjs`, which photographs every page in headless Chrome and reports exceptions |
 | `check.py` | the gate: checksums, the board file, every quoted figure against its source, no external loads, the house style, the tests |
 

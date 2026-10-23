@@ -32,7 +32,7 @@ Three functions near the top are yours:
 
 - `on_start()` runs once when the board starts. Set up whatever you will switch.
 - `on_switch(bool on)` runs whenever the decision changes. It is false when the link to your IntoMind One is lost, so whatever you switch turns off with it.
-- `on_reading(float score, bool clean)` runs for every reading, every few seconds, with the custom AI head's score from 0 to 1, for anything finer than on and off.
+- `on_reading(float score, bool clean)` runs for every reading, every few seconds, with the custom AI head's score, near 0 for Off and near 1 for On, for anything finer than on and off.
 
 The code to drive a pin is already in them, commented out. Uncomment the
 three lines in `on_start()` and the one in `on_switch()`, rebuild, and pin

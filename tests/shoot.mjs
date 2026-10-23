@@ -23,7 +23,7 @@ const SCENES = [
   ["age-detector/?dev&fast", 5],
   ["biological-sex-detector/?dev&fast", 5],
   ["light-switch/?dev", 3],
-  ["flight-simulator/?dev&fast&look=left&after=5", 9],
+  ["flight-simulator/?dev&fast&look=left&after=5", 9, ["Begin"]],
   ["pico/", 2],
 ];
 
@@ -160,10 +160,10 @@ const height = heightFlag ? Number(heightFlag.split("=")[1]) : width < 600 ? 844
 const { chrome, port } = await launch();
 let failed = 0;
 try {
-  const jobs = one ? [[one, Number(secs ?? 6), outPath ?? "/tmp/shot.png"]] : SCENES.map(([s, secs], i) => [s, secs, `/tmp/shots/${i}-${s.split("/")[0].replace(/[^a-z-]/g, "") || "home"}.png`]);
+  const jobs = one ? [[one, Number(secs ?? 6), outPath ?? "/tmp/shot.png", clicks]] : SCENES.map(([s, secs, sceneClicks = []], i) => [s, secs, `/tmp/shots/${i}-${s.split("/")[0].replace(/[^a-z-]/g, "") || "home"}.png`, [...clicks, ...sceneClicks]]);
   mkdirSync("/tmp/shots", { recursive: true });
-  for (const [path, seconds, out] of jobs) {
-    const problems = await shoot(port, path, seconds, out, { full, width, height, clicks, keys, js, profile });
+  for (const [path, seconds, out, sceneClicks] of jobs) {
+    const problems = await shoot(port, path, seconds, out, { full, width, height, clicks: sceneClicks, keys, js, profile });
     if (problems.length) { failed++; console.log(`FAIL ${BASE}${path}`); for (const p of problems) console.log(`     ${p}`); }
     else console.log(`ok   ${BASE}${path} -> ${out}`);
   }

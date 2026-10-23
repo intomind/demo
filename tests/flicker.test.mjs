@@ -1,7 +1,7 @@
 // The stimulus flickers at the rate it claims, and the patches fit the safety rule.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brightness, patchesFitTheRule, largestSafePatch, snapRefresh } from "../lib/flicker.js";
+import { brightness, patchesInOneField, safeRadius, SAFE_AREA_PX2, snapRefresh } from "../lib/flicker.js";
 
 test("brightness crosses the middle twice per cycle at the stated rate", () => {
   const hz = 12;
@@ -18,10 +18,19 @@ test("brightness crosses the middle twice per cycle at the stated rate", () => {
   assert.equal(crossings, 2 * hz);
 });
 
-test("four patches of the default size fit the flashing area rule, and the largest safe size is stated", () => {
-  assert.ok(patchesFitTheRule(110));
-  assert.ok(!patchesFitTheRule(200));
-  assert.equal(largestSafePatch(4), 147);
+test("the flashing rule: a quarter of a ten degree field, counted over the patches that could share one", () => {
+  assert.equal(SAFE_AREA_PX2, (341 * 256) / 4);
+  // The four lights on a laptop screen never share a field, so each may use the whole limit and keeps its full size.
+  const laptop = [[720, 112], [720, 788], [112, 450], [1328, 450]];
+  assert.equal(patchesInOneField(laptop, 76), 1);
+  assert.equal(safeRadius(laptop, 76), 76);
+  assert.ok(Math.PI * 76 * 76 <= SAFE_AREA_PX2);
+  // On a phone the left and right lights sit within one field, so they shrink until two fit the limit together.
+  const phone = [[195, 112], [195, 732], [112, 422], [278, 422]];
+  assert.ok(patchesInOneField(phone, 76) >= 2);
+  const r = safeRadius(phone, 76);
+  assert.ok(r < 76);
+  assert.ok(Math.PI * r * r * patchesInOneField(phone, r) <= SAFE_AREA_PX2);
 });
 
 test("a measured refresh rate snaps to a common one", () => {

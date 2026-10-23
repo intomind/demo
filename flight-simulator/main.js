@@ -14,7 +14,7 @@
 
 import { shell, ready, fit, mono, sans, isDark, pickDevice } from "../lib/shell.js";
 import { Detector, scores } from "../lib/ssvep.js";
-import { DEFAULT_RATES, DIRECTIONS, brightness, largestSafePatch } from "../lib/flicker.js";
+import { DEFAULT_RATES, DIRECTIONS, brightness, safeRadius } from "../lib/flicker.js";
 import { Game, STAGES, DRAW_RANGE, DRAW_FAR, frameOf } from "../lib/game.js";
 import { Camera, add, sub, scale, dot, cross, unit, length } from "../lib/space.js";
 import { drawShip, mesh } from "../lib/ship.js";
@@ -87,10 +87,12 @@ class View {
     this.pops = []; this.sparks = []; this.flares = []; this.debris = [];
   }
 
-  /** The measure of the screen: the lens, and how far the camera's heading must lag the ship's for the ship's body to sit touching a light. */
+  /** The measure of the screen: the lens, the lights' size under the flashing rule, and how far the camera's heading must lag the ship's for the ship's body to sit touching a light. */
   measure(w, h, game) {
-    const R = this.lights;
     const cx = w * 0.5, cy = h * 0.5;
+    // The lights sit at the four edges. Their size is the largest that keeps the flashing area inside any ten degree field under the rule, so they shrink on a small screen where two could share a field.
+    const R0 = this.lights;
+    const R = this.lights === 0 ? 0 : safeRadius([[cx, R0 + 36], [cx, h - R0 - 36], [R0 + 36, cy], [w - R0 - 36, cy]], R0);
     const focal = 0.75 * Math.max(w, h);
     // The ship's body, on screen, is about half a unit wide and a third tall at the camera's distance.
     const s0 = focal / CAM.back;
@@ -497,7 +499,7 @@ const st = {
   sayUntil: 0,
   best: Number(localStorage.getItem(BEST_KEY) || 0),
 };
-const view = new View({ lights: Math.min(76, Math.floor(largestSafePatch(4) / Math.sqrt(Math.PI))) });
+const view = new View({ lights: 76 });
 /** The world is drawn here at one pixel per screen pixel, then copied under the lenses and the text, which are drawn at the screen's full density. */
 const world = document.createElement("canvas");
 let worldG = null;
@@ -515,7 +517,16 @@ ui.sep();
 ui.link("Source", "main.js");
 
 ui.connect(device, { onConnect: begin, onDisconnect: () => { st.phase = "idle"; st.held = null; stopDeciding(); if (st.started) ui.say("Your IntoMind One disconnected. The arrow keys still fly it."); } });
-device.on((e) => { if (e.type === "auto") { ui.closeCard(); begin(); } });
+// The simulated IntoMind One connects by itself, but the warning card stays until it is read: its button begins the game.
+device.on((e) => {
+  if (e.type !== "auto") return;
+  const b = document.querySelector(".veil .pill.primary");
+  if (!b) return;
+  const begins = b.cloneNode(true);
+  begins.textContent = "Begin";
+  begins.addEventListener("click", () => { ui.closeCard(); begin(); });
+  b.replaceWith(begins);
+});
 
 ui.openingCard(device, {
   title: "BCI Flight Simulator",
@@ -544,7 +555,7 @@ function newGame() {
   againBtn.classList.remove("hide");
 }
 
-/** The IntoMind One joins: a baseline with the lights dark, then the eyes steer. */
+/** The IntoMind One joins: a baseline with the lights steady, then the eyes steer. */
 async function begin() {
   start();
   try {

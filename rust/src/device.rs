@@ -276,6 +276,12 @@ impl Device {
         self.request(c, &format!("to select the head in slot {slot}")).await.map(drop)
     }
 
+    /// Take the head out of a user slot. The device refuses slot 0, and any slot while streaming.
+    pub async fn remove_head(&self, slot: u8) -> Result<(), String> {
+        let c = self.command(|s| s.remove_head(slot))?;
+        self.request(c, &format!("to remove the head in slot {slot}")).await.map(drop)
+    }
+
     /// Turn the running head's predictions on or off.
     pub async fn set_predictions(&self, on: bool) -> Result<(), String> {
         let c = self.command(|s| s.set_predictions(on))?;
