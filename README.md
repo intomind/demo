@@ -9,7 +9,7 @@ demo.intomind.com.
 
 | | |
 |---|---|
-| Alpha Flower | Close your eyes and a flower grows from the signal itself. Open them and it stays. Four forms, one color read from your alpha peak, saved as an image. |
+| Alpha Flower | Close your eyes and a fractal grows from the signal itself. Open them and it stays. Four forms, one color read from your alpha peak, saved as an image. |
 | BCI Flight Simulator | Four lights flicker at exact rates. Look at one and the ship turns toward it, read from the raw signal in the browser. |
 | Age Detector | The open source AI head for age runs on the IntoMind One's own chip and says how old your brain looks, with the published error either side. |
 | Biological Sex Detector | The open source AI head for biological sex lands a score between male and female, the two groups drawn from its published AUC. |
@@ -30,7 +30,7 @@ in the room. Keys while it runs: c closed, f focus, j jaw, arrows look.
 | `index.html`, `main.js` | the home page |
 | `alpha-flower/`, `flight-simulator/`, `age-detector/`, `biological-sex-detector/`, `light-switch/` | the five demos |
 | `pico/` | the Mind-Controlled Microcontroller: the guide, the program file ready for a Raspberry Pi Pico 2 W, and in `pico/board/` its source in C with its build steps and licenses |
-| `lib/` | what the demos share: the IntoMind One through the SDK, the shell, the flower, the ship, the Pico 2 W board, the readouts, the flicker decoder, the trainer, the game, the published numbers, the simulated IntoMind One |
+| `lib/` | what the demos share: the IntoMind One through the SDK, the shell, the fractal, the ship, the Pico 2 W board, the readouts, the flicker decoder, the trainer, the game, the published numbers, the simulated IntoMind One |
 | `vendor/` | the published SDK and the two open source AI heads, byte for byte, with checksums |
 | `python/` | the demos as scripts, on the published `intomind` package |
 | `rust/` | the demos as Rust programs, on the published `intomind` crate |

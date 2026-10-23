@@ -1,4 +1,4 @@
-// Alpha Flower. Eyes closed, the alpha rhythm comes up, and a flower grows
+// Alpha Flower. Eyes closed, the alpha rhythm comes up, and a fractal grows
 // from the signal: its symmetry from the alpha peak, its splits from theta
 // against alpha, its reach from the alpha share, every bend from the
 // samples, and its color from the peak. Eyes open, it stays.
@@ -10,7 +10,7 @@ import { alphaShare } from "../lib/alpha.js";
 import { flowerPreview } from "../lib/previews.js";
 
 const STYLES = ["electric", "phase", "mandala", "flow"];
-/** Seconds of closed-eyes signal the flower is read from, the newest kept. */
+/** Seconds of closed-eyes signal the fractal is read from, the newest kept. */
 const KEEP = 12;
 /** Seconds with eyes closed until the electric form has opened every generation. */
 const FULL = 24;
@@ -21,7 +21,7 @@ const canvas = document.getElementById("stage");
 const ui = shell({ title: "Alpha Flower", line: "Connect your IntoMind One.", about: `
   <p><b>EEG</b>, electroencephalography, is a recording of the brain's electrical activity from the scalp. Billions of neurons firing together make tiny voltages, millionths of a volt, that electrodes resting on the skin can pick up. The IntoMind One has four of them.</p>
   <p>When you close your eyes, the part of the brain that handles vision settles into a steady rhythm of about eight to twelve waves a second, called <b>alpha</b>. It was the first brainwave ever recorded, in 1924, and it is still the strongest and most reliable signal in EEG.</p>
-  <p>This page reads your alpha rhythm: its exact frequency, how much of the signal it makes up, and the shape of every wave. Those numbers set the rules of a <b>fractal</b>, a pattern made by repeating one rule at smaller and smaller scales. So the flower is a picture of your own rhythm, and it grows only while your eyes are closed, because that is when alpha is there.</p>
+  <p>This page reads your alpha rhythm: its exact frequency, how much of the signal it makes up, and the shape of every wave. Those numbers set the rules of a <b>fractal</b>, a pattern made by repeating one rule at smaller and smaller scales. So the fractal is a picture of your own rhythm, and it grows only while your eyes are closed, because that is when alpha is there.</p>
   <p>The number at the bottom right is how much of your signal's power, from 4 to 30 waves a second, is alpha, from 8 to 13. Write it down with your eyes open, then with them closed.</p>` });
 const device = await pickDevice();
 
@@ -71,8 +71,8 @@ device.on((e) => { if (e.type === "auto") { ui.closeCard(); begin(); } });
 ui.openingCard(device, {
   title: "Alpha Flower",
   html: `<p>Put on your IntoMind One and connect it. Then close your eyes.</p>
-    <p>When your eyes close, your brain produces a rhythm called alpha, about ten waves a second. Your IntoMind One picks it up, and this page grows a flower from the signal itself. The shape, the branching and the color all come from your own waves, so no two flowers are the same.</p>
-    <p>Open your eyes and the flower stays. Save it as an image if you like it.</p>`,
+    <p>When your eyes close, your brain produces a rhythm called alpha, about ten waves a second. Your IntoMind One picks it up, and this page grows a fractal from the signal itself. The shape, the branching and the color all come from your own waves, so no two fractals are the same.</p>
+    <p>Open your eyes and the fractal stays. Save it as an image if you like it.</p>`,
   onConnect: begin,
   preview: flowerPreview,
 });
