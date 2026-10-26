@@ -8,7 +8,9 @@ import { boardCamera, drawBoardThemed, ledAt, at } from "../lib/board.js";
 shell({ title: "Mind-Controlled Microcontroller" });
 document.getElementById("address").textContent = siteAddress();
 
-const FILE = "light-switch-pico-2-w.uf2";
+/** The two files the steps name: IntoMind's MicroPython, and the program that runs on it. */
+const FIRMWARE = "intomind-micropython-pico-2-w.uf2";
+const PROGRAM = "mind_controlled_microcontroller.py";
 const SIGNAL = "#FF4A1C";
 
 /** What the LED can say, the way the program on the board says it. */
@@ -136,32 +138,19 @@ function step(n, g, w, h, t, dpr) {
     g.textAlign = "start";
     label(g, on ? "holding the On thought" : "resting", 14 * k, 16 * k, on ? SIGNAL : p.dim, 8 * k);
   } else if (n === 2) {
-    // The file: one document, its name, and what it holds.
-    const x = 40 * k, y = h * 0.2, fw = 70 * k, fh = 90 * k, fold = 18 * k;
-    g.strokeStyle = p.ink; g.lineWidth = 1.4; g.lineJoin = "round";
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + fw - fold, y); g.lineTo(x + fw, y + fold); g.lineTo(x + fw, y + fh); g.lineTo(x, y + fh); g.closePath(); g.stroke();
-    g.beginPath(); g.moveTo(x + fw - fold, y); g.lineTo(x + fw - fold, y + fold); g.lineTo(x + fw, y + fold); g.stroke();
-    label(g, "uf2", x + fw / 2, y + fh * 0.62, SIGNAL, 10 * k, "center");
-    const tx = x + fw + 26 * k;
-    mono(g, 12 * k, 500); g.letterSpacing = "0px"; g.fillStyle = p.ink; g.textBaseline = "alphabetic"; g.textAlign = "start";
-    g.fillText(FILE, tx, y + 26 * k);
-    g.fillStyle = SIGNAL; g.fillRect(tx, y + 32 * k, g.measureText(FILE).width, 2 * k);
-    mono(g, 7.4 * k); g.fillStyle = p.dim;
-    ["One file, the whole program", "Ready to run the moment it lands", "Source and build steps on this site"].forEach((line, i) => g.fillText(line.toUpperCase(), tx, y + 58 * k + i * 15 * k));
-  } else if (n === 3) {
-    // Hold the button, plug in, the drive appears, the file goes on, the drive closes, the LED starts looking.
+    // Hold the button, plug in, the drive appears, MicroPython goes on, the drive closes.
     const T = t % 9;
     const plug = 18 - 18 * ease((T - 1.0) / 1.0);
     const cam = boardCamera(w, h, { yaw: 0.62, pitch: 0.78, size: w * 0.56, cx: w * 0.4, cy: h * 0.56 });
-    const looking = T > 6.1;
-    board(g, cam, dpr, p, { ring: looking ? null : "bootsel", plug, t, led: looking ? led("looking", t) : 0, cableTo: [120, -8, -20] });
+    const done = T > 6.1;
+    board(g, cam, dpr, p, { ring: done ? null : "bootsel", plug, t, led: 0, cableTo: [120, -8, -20] });
     const b = at(cam, 39.05, 1.4, 6.9);
-    if (b && !looking) {
+    if (b && !done) {
       g.strokeStyle = SIGNAL; g.lineWidth = 1;
       g.beginPath(); g.moveTo(b.x, b.y - 18 * k); g.lineTo(b.x, b.y - 46 * k); g.stroke();
       label(g, T < 2.3 ? "hold" : "let go", b.x + 5 * k, b.y - 46 * k, SIGNAL, 8.5 * k);
     }
-    if (looking) label(g, "LED · one short blink a second · looking", 14 * k, 16 * k, SIGNAL, 7.6 * k);
+    if (done) label(g, "MicroPython on the board · ready for the program", 14 * k, 16 * k, SIGNAL, 7.6 * k);
     const show = ease((T - 2.6) / 0.4) * (1 - ease((T - 5.6) / 0.5));
     if (show > 0) {
       g.globalAlpha = show;
@@ -170,9 +159,22 @@ function step(n, g, w, h, t, dpr) {
       mono(g, 9.5 * k); g.fillStyle = p.ink; g.textAlign = "start"; g.textBaseline = "middle"; g.fillText("RP2350", x + 9 * k, y + bh / 2);
       const fk = ease((T - 3.3) / 0.9);
       mono(g, 6.6 * k); g.fillStyle = SIGNAL;
-      g.fillText(FILE.toUpperCase(), x - 14 * k + fk * 22 * k, y + bh + 14 * k - fk * 14 * k);
+      g.fillText(FIRMWARE.toUpperCase(), x - 14 * k + fk * 22 * k, y + bh + 14 * k - fk * 14 * k);
       g.globalAlpha = 1;
     }
+  } else if (n === 3) {
+    // The program: one Python file, its name, and where it goes.
+    const x = 40 * k, y = h * 0.2, fw = 70 * k, fh = 90 * k, fold = 18 * k;
+    g.strokeStyle = p.ink; g.lineWidth = 1.4; g.lineJoin = "round";
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + fw - fold, y); g.lineTo(x + fw, y + fold); g.lineTo(x + fw, y + fh); g.lineTo(x, y + fh); g.closePath(); g.stroke();
+    g.beginPath(); g.moveTo(x + fw - fold, y); g.lineTo(x + fw - fold, y + fold); g.lineTo(x + fw, y + fold); g.stroke();
+    label(g, "py", x + fw / 2, y + fh * 0.62, SIGNAL, 10 * k, "center");
+    const tx = x + fw + 26 * k;
+    mono(g, 11 * k, 500); g.letterSpacing = "0px"; g.fillStyle = p.ink; g.textBaseline = "alphabetic"; g.textAlign = "start";
+    g.fillText(PROGRAM, tx, y + 26 * k);
+    g.fillStyle = SIGNAL; g.fillRect(tx, y + 32 * k, g.measureText(PROGRAM).width, 2 * k);
+    mono(g, 7.4 * k); g.fillStyle = p.dim;
+    ["One file, the whole program", "Open it and change it in Thonny", "Saved on the board as main.py"].forEach((line, i) => g.fillText(line.toUpperCase(), tx, y + 58 * k + i * 15 * k));
   } else if (n === 4) {
     // Pairing: looking, then paired and resting, then the On thought.
     const cam = boardCamera(w, h, { yaw: 0.45, pitch: 0.82, size: w * 0.44, cx: w * 0.7, cy: h * 0.58 });

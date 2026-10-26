@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mind-Controlled Microcontroller · IntoMind Demo Suite</title>
-<meta name="description" content="Run your Mind-Controlled Light Switch on a Raspberry Pi Pico 2 W. One file on the board, and it connects to your IntoMind One by itself and turns its LED on while your custom AI head reads On. No computer in the room.">
+<meta name="description" content="Run your Mind-Controlled Light Switch on a Raspberry Pi Pico 2 W. One small program on the board, and it connects to your IntoMind One by itself and turns its LED on while your custom AI head reads On. No computer in the room.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="../assets/site.css">
 <script>document.documentElement.dataset.theme = new URLSearchParams(location.search).get("theme") || localStorage.getItem("intomind-demo-theme") || "dark";</script>
@@ -34,6 +34,7 @@
   .guide .band p.see { color: var(--soft); }
   .guide .band p.see b { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--signal); margin-right: .6em; }
   .guide .band .pill { display: inline-block; margin: 6px 0 16px; text-decoration: none; }
+  .guide .band .pill + p.alt { margin-top: -6px; font-size: 14px; color: var(--soft); }
   .guide .list div { display: grid; grid-template-columns: 320px 1fr; gap: 24px; padding: 16px 0; border-top: 1px solid var(--rule); font-size: 16px; line-height: 1.5; color: var(--ink2); }
   .guide .list b { color: var(--ink); font-weight: 600; }
   .guide .build p { font-size: 17px; line-height: 1.55; color: var(--ink2); max-width: 780px; margin: 0 0 12px; }
@@ -71,7 +72,7 @@
     <div class="need">
       <p>A Raspberry Pi Pico 2 W. The Pico 2 without the W has no Bluetooth.</p>
       <p>A micro USB cable that carries data. Some cables only charge.</p>
-      <p>A computer with a USB port.</p>
+      <p>A computer with a USB port, and Thonny, the free MicroPython editor from thonny.org.</p>
       <p>Your IntoMind One, with a custom AI head installed from the Mind-Controlled Light Switch demo.</p>
     </div>
   </section>
@@ -86,16 +87,18 @@
     </div>
     <div class="band flip">
       <div class="pic"><canvas data-draw="step" data-n="2" aria-hidden="true"></canvas></div>
-      <div><h3><i>02</i>Download the program</h3>
-        <p>One file holds the whole program for the board, ready to run. Its source is on this site for anyone who wants to change it.</p>
-        <a class="pill primary" href="light-switch-pico-2-w.uf2" download>Download the program</a>
-        <p class="see"><b>You should see</b>A file named light-switch-pico-2-w.uf2.</p></div>
+      <div><h3><i>02</i>Put MicroPython on the board</h3>
+        <p>MicroPython runs Python on the board. Download IntoMind's MicroPython, which can talk to your IntoMind One. Hold the white <b>BOOTSEL</b> button while you plug the board into your computer, then let go. Drag the file onto the drive that appears.</p>
+        <a class="pill primary" href="https://github.com/intomind/micropython/raw/main/firmware/intomind-micropython-pico-2-w.uf2">Download MicroPython</a>
+        <p class="alt">Or use the program in C, one file with nothing else to install: <a href="light-switch-pico-2-w.uf2" download>download it</a>, drag it onto the board the same way, and skip step 03.</p>
+        <p class="see"><b>You should see</b>A drive named RP2350 that closes by itself once the file is on it. A Mac may warn that the disk was not ejected properly. That is expected.</p></div>
     </div>
     <div class="band">
       <div class="pic"><canvas data-draw="step" data-n="3" aria-hidden="true"></canvas></div>
-      <div><h3><i>03</i>Put it on the board</h3>
-        <p>Hold the white <b>BOOTSEL</b> button while you plug the board into your computer, then let go. Drag the file onto the drive that appears.</p>
-        <p class="see"><b>You should see</b>A drive named RP2350 that closes by itself once the file is on it, then the LED blinking once a second. A Mac may warn that the disk was not ejected properly. That is expected.</p></div>
+      <div><h3><i>03</i>Put the program on the board</h3>
+        <p>The whole program is one Python file. Open Thonny and choose MicroPython (Raspberry Pi Pico) at the bottom right. Open the program, then save it to the board as <code>main.py</code>: File, Save as, Raspberry Pi Pico. Press Ctrl-D in Thonny's shell, and the board starts it, as it will whenever it has power.</p>
+        <a class="pill primary" href="../micropython/mind_controlled_microcontroller.py" download>Download the program</a>
+        <p class="see"><b>You should see</b>The LED blinking once a second while the board looks for your IntoMind One, and what it is doing written in Thonny's shell.</p></div>
     </div>
     <div class="band flip">
       <div class="pic"><canvas data-draw="step" data-n="4" aria-hidden="true"></canvas></div>
@@ -114,7 +117,8 @@
   <section class="list">
     <h2>If it does not work</h2>
     <div><b>No drive appears</b><span>The cable may only charge, or BOOTSEL was let go too soon. Try another cable, and keep holding the button until the drive shows.</span></div>
-    <div><b>The drive closes, but the LED never blinks</b><span>The file did not land. Hold BOOTSEL, plug in again, and drag the file once more.</span></div>
+    <div><b>Thonny does not find the board</b><span>Choose MicroPython (Raspberry Pi Pico) at the bottom right of Thonny. If it is not there, the cable may only charge, or MicroPython did not land: do step 02 again.</span></div>
+    <div><b>The LED never blinks</b><span>The program is not running. Save it on the board as main.py, exactly, then press Ctrl-D in Thonny's shell. With the program in C, the file did not land: hold BOOTSEL, plug in again, and drag it once more.</span></div>
     <div><b>One short blink a second, and it never stops</b><span>Your IntoMind One is off, or another tab is connected to it. Close the other tab, or switch your IntoMind One off and on again.</span></div>
     <div><b>Two short blinks a second</b><span>Your IntoMind One is on its charger, and it sends no EEG while it charges. Unplug it.</span></div>
     <div><b>Three short blinks a second</b><span>No custom AI head is installed on your IntoMind One. Do step 01.</span></div>
@@ -125,11 +129,11 @@
 
   <section class="build">
     <h2>Build on it</h2>
-    <p>The program is plain C on Raspberry Pi's own toolkit for the board, and it marks where your own code goes. The code to switch a pin is already there, commented out: pin GP15, the board's pin 20, with ground on pin 18. Uncomment it and rebuild, and the pin goes high, to 3.3 volts, while your custom AI head reads On: a signal any circuit, robot or project of your own can act on.</p>
-    <p>The source is <a href="board/main.c"><code>board/main.c</code></a>, and the build steps are in <a href="board/README.md"><code>board/README.md</code></a>.</p>
+    <p>The program marks where your own code goes. <code>on_switch(on)</code> runs whenever your custom AI head's decision changes, and <code>on_reading(score, clean)</code> for every reading. The code to switch a pin is already there, commented out: pin GP15, the board's pin 20, with ground on pin 18. Uncomment the two lines and save the program again, and the pin goes high, to 3.3 volts, while your custom AI head reads On: a signal any circuit, robot or project of your own can act on.</p>
+    <p>The program is <a href="../micropython/mind_controlled_microcontroller.py"><code>micropython/mind_controlled_microcontroller.py</code></a>, and everything else a board can do with your IntoMind One is in the <code>intomind</code> library in <a href="https://github.com/intomind/micropython">IntoMind's MicroPython</a>. The program in C is <a href="board/main.c"><code>board/main.c</code></a>, on Raspberry Pi's own toolkit for the board, with its build steps in <a href="board/README.md"><code>board/README.md</code></a>.</p>
   </section>
 
-  <div class="end"><a href="board/main.c">Source · board/main.c</a><span>Unplug the USB-C cable before wearing your IntoMind One.</span><span id="address"></span></div>
+  <div class="end"><a href="../micropython/mind_controlled_microcontroller.py">Source · mind_controlled_microcontroller.py</a><span>Unplug the USB-C cable before wearing your IntoMind One.</span><span id="address"></span></div>
 </main>
 <script type="module" src="../lib/suite.js"></script>
 </body>

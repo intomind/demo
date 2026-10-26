@@ -29,7 +29,7 @@ in the room. Keys while it runs: c closed, f focus, j jaw, arrows look.
 |---|---|
 | `index.html`, `main.js` | the home page |
 | `alpha-flower/`, `flight-simulator/`, `age-detector/`, `biological-sex-detector/`, `light-switch/` | the five demos |
-| `pico/` | the Mind-Controlled Microcontroller: the guide, the program file ready for a Raspberry Pi Pico 2 W, and in `pico/board/` its source in C with its build steps and licenses |
+| `pico/` | the Mind-Controlled Microcontroller's guide, which puts the MicroPython program on a Raspberry Pi Pico 2 W, and the program in C as one file ready to run, with its source, build steps and licenses in `pico/board/` |
 | `lib/` | what the demos share: the suite, which keeps the IntoMind One connected from page to page, the IntoMind One through the SDK, the shell, the fractal, the ship, the Pico 2 W board, the readouts, the flicker decoder, the trainer, the game, the published numbers, the simulated IntoMind One |
 | `vendor/` | the published SDK and the two open source AI heads, byte for byte, with checksums |
 | `python/` | the demos as scripts, on the published `intomind` package |

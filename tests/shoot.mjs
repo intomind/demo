@@ -33,7 +33,7 @@ const PAGE_WIN = 'document.querySelector("iframe.page")?.contentWindow ?? window
 const PAGE_DOC = 'document.querySelector("iframe.page")?.contentDocument ?? document';
 
 async function launch() {
-  const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--remote-debugging-port=0", "--window-size=1600,900", "--autoplay-policy=no-user-gesture-required", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
+  const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--remote-debugging-port=0", "--window-size=1600,900", "--autoplay-policy=no-user-gesture-required", "--mute-audio", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
   const port = await new Promise((resolve, reject) => {
     let text = "";
     chrome.stderr.on("data", (d) => {
@@ -92,6 +92,8 @@ async function shoot(port, path, seconds, out, { full = false, width = 1600, hei
   await page.send("Log.enable");
   await page.send("Page.enable");
   await page.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 600 });
+  // Silent: the system speaks what a page says aloud, past the browser's own sound, which --mute-audio turns off.
+  await page.send("Page.addScriptToEvaluateOnNewDocument", { source: "if (window.speechSynthesis) speechSynthesis.speak = () => {};" });
   await page.send("Page.navigate", { url: /^https?:\/\//.test(path) ? path : BASE + path });
   const start = Date.now();
   while (!page.loaded && Date.now() - start < 10000) await sleep(50);
