@@ -30,13 +30,13 @@ in the room. Keys while it runs: c closed, f focus, j jaw, arrows look.
 | `index.html`, `main.js` | the home page |
 | `alpha-flower/`, `flight-simulator/`, `age-detector/`, `biological-sex-detector/`, `light-switch/` | the five demos |
 | `pico/` | the Mind-Controlled Microcontroller: the guide, the program file ready for a Raspberry Pi Pico 2 W, and in `pico/board/` its source in C with its build steps and licenses |
-| `lib/` | what the demos share: the IntoMind One through the SDK, the shell, the fractal, the ship, the Pico 2 W board, the readouts, the flicker decoder, the trainer, the game, the published numbers, the simulated IntoMind One |
+| `lib/` | what the demos share: the suite, which keeps the IntoMind One connected from page to page, the IntoMind One through the SDK, the shell, the fractal, the ship, the Pico 2 W board, the readouts, the flicker decoder, the trainer, the game, the published numbers, the simulated IntoMind One |
 | `vendor/` | the published SDK and the two open source AI heads, byte for byte, with checksums |
 | `python/` | the demos as scripts, on the published `intomind` package |
 | `rust/` | the demos as Rust programs, on the published `intomind` crate |
 | `micropython/` | the Mind-Controlled Microcontroller as a MicroPython program, on the `intomind` library for MicroPython |
 | `assets/` | the stylesheet, and Geist and Geist Mono under the SIL Open Font License, with Geist's barred capital I made its default so that an I never reads as a lowercase l |
-| `tests/` | Node and Python tests for the library and the MicroPython program, and `shoot.mjs`, which photographs every page in headless Chrome and reports exceptions |
+| `tests/` | Node and Python tests for the library and the MicroPython program, `shoot.mjs`, which photographs every page in headless Chrome and reports exceptions, and `suite.mjs`, which walks the suite in headless Chrome |
 | `check.py` | the gate: checksums, the board file, every quoted figure against its source, no external loads, the house style, the tests |
 
 Free software under the GNU Affero General Public License, version 3. See

@@ -1,12 +1,12 @@
 // The simulated IntoMind One behaves like a person for the demos that read its raw signal: the Alpha
-// Flower's number is low with the eyes open and high with them closed, and the flight simulator finds
+// Flower's relative alpha power is low with the eyes open and high with them closed, and the flight simulator finds
 // the light being looked at. Math.random is seeded, so every run sees the same signal.
 import test from "node:test";
 import assert from "node:assert/strict";
 
 globalThis.window ??= { addEventListener() {} };
 const { Sim } = await import("../lib/sim.js");
-const { alphaShare } = await import("../lib/alpha.js");
+const { relativeAlphaPower, windowSeconds, EyesClosed } = await import("../lib/alpha.js");
 const { Detector, scores } = await import("../lib/ssvep.js");
 
 function seed(n) {
@@ -16,28 +16,28 @@ function seed(n) {
 /** A quarter of a second of signal, in the steps the simulation takes. */
 function quarter(sim) { for (let k = 0; k < 6; k++) sim.step(k === 5 ? 0.05 : 0.04); }
 
-/** Thirty seconds of the Alpha Flower: its number four times a second, and the share of that time its flower grows. */
+/** Thirty seconds of the Alpha Flower: relative alpha power four times a second, and the fraction of that time its flower grows. */
 function flower(closed, runSeed) {
   seed(runSeed);
   const sim = new Sim(new URLSearchParams(closed ? "closed&idle" : "idle"));
-  const shares = [];
-  let growing = 0, ticks = 0, state = false;
+  const values = [];
+  const eyes = new EyesClosed();
+  let growing = 0, ticks = 0;
   for (let t = 0; t < 33; t += 0.25) {
     quarter(sim);
     if (t < 3) continue;
-    const s = alphaShare(sim.recent(3), sim.fs);
-    shares.push(s);
-    // The page's own lines: closed from 36 percent, open again at 27.
-    if (!state && s >= 0.36) state = true;
-    else if (state && s <= 0.27) state = false;
+    const s = relativeAlphaPower(sim.recent(windowSeconds(sim.fs)), sim.fs);
+    values.push(s);
+    // The page's own thresholds, set from the wearer's baseline.
+    const closed = eyes.update(s);
     ticks++;
-    if (state) growing++;
+    if (closed) growing++;
   }
-  shares.sort((a, b) => a - b);
-  return { median: shares[shares.length >> 1], grows: growing / ticks };
+  values.sort((a, b) => a - b);
+  return { median: values[values.length >> 1], grows: growing / ticks };
 }
 
-test("with the eyes open, the alpha number stays low and the flower does not grow", () => {
+test("with the eyes open, relative alpha power stays low and the flower does not grow", () => {
   for (const s of [1, 2, 3, 4, 5]) {
     const { median, grows } = flower(false, s);
     assert.ok(median < 0.27, `median ${median}`);
@@ -45,7 +45,7 @@ test("with the eyes open, the alpha number stays low and the flower does not gro
   }
 });
 
-test("with the eyes closed, the alpha number is high and the flower grows", () => {
+test("with the eyes closed, relative alpha power is high and the flower grows", () => {
   for (const s of [1, 2, 3, 4, 5]) {
     const { median, grows } = flower(true, s);
     assert.ok(median > 0.45, `median ${median}`);

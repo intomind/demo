@@ -1,5 +1,6 @@
-"""Alpha Flower as a script: stream, and print how much of the signal sits in the
-alpha band, once a second. Close your eyes and watch the bar grow.
+"""Alpha Flower as a script: stream, and print relative alpha power, the power
+from 8 to 13 Hz as a fraction of the power from 4 to 30 Hz, once a second.
+Close your eyes and watch the bar grow.
 
     python3 eyes_closed.py ["Ada's IntoMind One"]
 
@@ -53,7 +54,7 @@ async def main() -> None:
             if fs <= 0:
                 continue
             n = int(SECONDS * fs)
-            shares = []
+            values = []
             for lane in lanes:
                 if len(lane) < n:
                     continue
@@ -61,12 +62,12 @@ async def main() -> None:
                 f, p = welch(x - x.mean(), fs=fs, nperseg=min(len(x), int(2 * fs)))
                 wide = band(f, p, *WIDE)
                 if wide > 0:
-                    shares.append(band(f, p, *ALPHA) / wide)
-            if not shares:
+                    values.append(band(f, p, *ALPHA) / wide)
+            if not values:
                 print(f"waiting for {SECONDS:.0f} seconds of signal")
                 continue
-            share = sum(shares) / len(shares)
-            print(f"alpha share of 4 to 30 Hz power: {share:5.2f}  {'#' * int(share * 60)}")
+            relative = sum(values) / len(values)
+            print(f"relative alpha power: {relative:5.2f}  {'#' * int(relative * 60)}")
     except (KeyboardInterrupt, asyncio.CancelledError):
         pass
     finally:

@@ -32,6 +32,20 @@ a { color: inherit; }
 .tools .pill { white-space: nowrap; }
 @media (max-width: 430px) { .chrome:has(.tools .pill) .mark span { display: none; } .tools { gap: 14px; } }
 .pill.on { border-color: var(--signal); color: var(--signal); }
+/* The suite: the tab holds the IntoMind One, and each page shows inside it, once it has loaded. */
+html.suite body { overflow: hidden; }
+html.suite iframe.page { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; }
+html.suite.shown iframe.page { visibility: visible; }
+html.suite.shown body > :not(iframe.page) { display: none; }
+.pill.conn { display: inline-grid; justify-items: center; }
+.pill.conn > span { grid-area: 1 / 1; }
+.pill.conn .act { visibility: hidden; }
+.pill.conn:not(.on) .act { display: none; }
+.pill.conn.on:is(:hover, :focus-visible) > span { visibility: hidden; }
+.pill.conn.on:is(:hover, :focus-visible) > .act { visibility: visible; }
+.pill.conn .cell { display: inline-block; position: relative; width: 1.7em; height: .75em; margin-right: 3px; padding: 1px; border: 1px solid currentColor; border-radius: 2px; }
+.pill.conn .cell::after { content: ""; position: absolute; left: 100%; top: 25%; width: 2px; height: 50%; margin-left: 1px; background: currentColor; border-radius: 0 1px 1px 0; }
+.pill.conn .cell > span { display: block; height: 100%; background: currentColor; border-radius: 1px; }
 .pill.busy { color: var(--muted); }
 .pill:disabled { color: var(--muted); cursor: default; }
 
@@ -70,6 +84,19 @@ html[data-theme="light"] .theme .moon { display: block; }
 .big h1 { font-size: clamp(44px, 9vw, 150px); font-weight: 650; letter-spacing: -.05em; line-height: .95; margin: 0; }
 .big small { display: block; margin-top: 18px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 .big.a h1 { color: var(--ink); } .big.b h1 { color: var(--signal); }
+.big .task { margin: 22px 0 0; font-size: clamp(17px, 1.9vw, 24px); font-weight: 500; letter-spacing: -.01em; color: var(--ink2); }
+.big .progress { display: flex; align-items: center; gap: 18px; width: min(560px, 84vw); margin: 34px auto 0; }
+.big .progress small { margin: 0; min-width: 9ch; text-align: right; }
+.rounds { flex: 1; display: flex; gap: 6px; }
+.rounds span { flex: 1; height: 4px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, currentColor 22%, transparent); }
+.rounds span.a { color: var(--ink); } .rounds span.b { color: var(--signal); }
+.rounds i { display: block; width: 0; height: 100%; background: currentColor; }
+
+/* The flight simulator's lights: lib/flicker.js. */
+.lamp { position: fixed; border-radius: 50%; background: #000; pointer-events: none; z-index: 1; }
+.lamp i { position: absolute; inset: 0; border-radius: 50%; background: #fff; }
+.lamp.flicker i { animation: flick var(--period) step-end infinite; }
+@keyframes flick { from { opacity: 1; } 50% { opacity: 0; } to { opacity: 0; } }
 
 .hide { display: none !important; }
 .fade { transition: opacity .6s; } .fade.out { opacity: 0; }

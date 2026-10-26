@@ -14,7 +14,7 @@
 
 import { shell, ready, fit, mono, sans, isDark, pickDevice } from "../lib/shell.js";
 import { Detector, scores } from "../lib/ssvep.js";
-import { DEFAULT_RATES, DIRECTIONS, brightness, safeRadius } from "../lib/flicker.js";
+import { DEFAULT_RATES, DIRECTIONS, lamps, safeRadius } from "../lib/flicker.js";
 import { Game, STAGES, DRAW_RANGE, DRAW_FAR, frameOf } from "../lib/game.js";
 import { Camera, add, sub, scale, dot, cross, unit, length } from "../lib/space.js";
 import { drawShip, mesh } from "../lib/ship.js";
@@ -24,6 +24,8 @@ import { pilot } from "../lib/pilot.js";
 import { sound, setSound, soundOn } from "../lib/sound.js";
 
 const RATES = DEFAULT_RATES;
+/** The four lights, which flicker by themselves over the canvas. */
+const lights = lamps(RATES);
 const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
 /** Seconds of signal one decision reads. */
 const WINDOW = 2;
@@ -498,6 +500,8 @@ const st = {
   stop: 0,
   sayUntil: 0,
   best: Number(localStorage.getItem(BEST_KEY) || 0),
+  // Whether the card about the flicker has been answered, once a visit.
+  warned: false,
 };
 const view = new View({ lights: 76 });
 /** The world is drawn here at one pixel per screen pixel, then copied under the lenses and the text, which are drawn at the screen's full density. */
@@ -555,8 +559,12 @@ function newGame() {
   againBtn.classList.remove("hide");
 }
 
-/** The IntoMind One joins: a baseline with the lights steady, then the eyes steer. */
+/** The IntoMind One joins: the card about the flicker, once, then a baseline with the lights steady, then the eyes steer. */
 async function begin() {
+  if (!st.warned) {
+    if (!(await flickerWarning())) { start(); return; }
+    st.warned = true;
+  }
   start();
   try {
     await device.start();
@@ -565,6 +573,22 @@ async function begin() {
     return;
   }
   calibrate();
+}
+
+/**
+ * Its own card, before any light flickers. True to go on, false to fly
+ * with the keyboard, with no flicker. It opens once the card that led
+ * here has closed.
+ */
+function flickerWarning() {
+  return new Promise((resolve) => setTimeout(() => ui.card({
+    title: "Start the flashing lights?",
+    html: "<p>Flashing lights can cause seizures in people with photosensitive epilepsy.</p>",
+    actions: [
+      { label: "Start", primary: true, onClick: () => resolve(true) },
+      { label: "Fly with the keyboard", onClick: () => resolve(false) },
+    ],
+  }), 0));
 }
 
 function calibrate() {
@@ -668,10 +692,8 @@ function chrome(g, w, h, m, t) {
   const { R, cx, cy } = m;
   const held = st.keyDir ?? st.held;
   const spots = { up: [cx, R + 36], down: [cx, h - R - 36], left: [R + 36, cy], right: [w - R - 36, cy] };
-  for (const d of DIRECTIONS) {
-    const [x, y] = spots[d];
-    lens(g, x, y, R, st.phase === "flying" ? brightness(RATES[d], t) : st.phase === "baseline" ? 0.03 : 0.08, held === d, dark);
-  }
+  lights.place(spots, R, st.phase === "flying", st.phase === "baseline" ? 0.03 : 0.08);
+  for (const d of DIRECTIONS) ring(g, spots[d][0], spots[d][1], R, held === d, dark);
   if (st.started) {
     const ink = dark ? "rgba(243,241,234,.85)" : "#111";
     const dim = dark ? "rgba(243,241,234,.45)" : "#77776F";
@@ -712,20 +734,9 @@ function chrome(g, w, h, m, t) {
   }
 }
 
-function lens(g, x, y, R, bright, held, dark) {
+/** The ring around a light, bright around the one the ship is turning toward. The light itself is an element of its own: `lamps` in lib/flicker.js. */
+function ring(g, x, y, R, held, dark) {
   g.save();
-  if (dark) {
-    g.globalCompositeOperation = "lighter";
-    const halo = g.createRadialGradient(x, y, R * 0.6, x, y, R * 2.4);
-    halo.addColorStop(0, "rgba(78,224,255,0.12)"); halo.addColorStop(1, "rgba(78,224,255,0)");
-    g.fillStyle = halo; g.fillRect(x - R * 2.6, y - R * 2.6, R * 5.2, R * 5.2);
-    g.globalCompositeOperation = "source-over";
-  }
-  const lensG = g.createRadialGradient(x - R * 0.3, y - R * 0.35, 0, x, y, R);
-  lensG.addColorStop(0, `rgb(${Math.round(120 + 135 * bright)},${Math.round(200 + 55 * bright)},255)`);
-  lensG.addColorStop(0.6, `rgb(${Math.round(20 + 60 * bright)},${Math.round(120 + 100 * bright)},${Math.round(160 + 95 * bright)})`);
-  lensG.addColorStop(1, "#06202a");
-  g.fillStyle = lensG; g.beginPath(); g.arc(x, y, R, 0, Math.PI * 2); g.fill();
   g.strokeStyle = held ? (dark ? "rgba(243,241,234,0.95)" : "#111") : "rgba(78,224,255,0.45)";
   g.lineWidth = held ? 3 : 1;
   g.beginPath(); g.arc(x, y, R + 5, 0, Math.PI * 2); g.stroke();

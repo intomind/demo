@@ -23,11 +23,14 @@ const SCENES = [
   ["age-detector/?dev&fast", 5],
   ["biological-sex-detector/?dev&fast", 5],
   ["light-switch/?dev", 3],
-  ["flight-simulator/?dev&fast&look=left&after=5", 9, ["Begin"]],
+  ["flight-simulator/?dev&fast&look=left&after=5", 9, ["Begin", "Start"]],
   ["pico/", 2],
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Every page is shown inside the suite, so what a scene presses and reads is in the suite's frame.
+const PAGE_WIN = 'document.querySelector("iframe.page")?.contentWindow ?? window';
+const PAGE_DOC = 'document.querySelector("iframe.page")?.contentDocument ?? document';
 
 async function launch() {
   const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--remote-debugging-port=0", "--window-size=1600,900", "--autoplay-policy=no-user-gesture-required", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
@@ -94,8 +97,8 @@ async function shoot(port, path, seconds, out, { full = false, width = 1600, hei
   while (!page.loaded && Date.now() - start < 10000) await sleep(50);
   let spent = 0;
   for (const text of clicks) {
-    // Wait for the button to be there, then press it.
-    const find = `[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
+    // Wait for the button to be there, then press it. It is in the page the suite shows.
+    const find = `[...(${PAGE_DOC}).querySelectorAll("button")].find((b) => b.textContent.trim() === ${JSON.stringify(text)})`;
     const t0 = Date.now();
     while (Date.now() - t0 < 8000) {
       const r = await page.send("Runtime.evaluate", { expression: `${find} ? (${find}.click(), true) : false`, returnByValue: true });
@@ -114,7 +117,7 @@ async function shoot(port, path, seconds, out, { full = false, width = 1600, hei
     spent += ms / 1000;
   }
   await sleep(Math.max(0, seconds - spent) * 1000);
-  if (js) { const r = await page.send("Runtime.evaluate", { expression: js, awaitPromise: true, returnByValue: true }); console.log(`     js -> ${JSON.stringify(r.result?.value)}`); await sleep(400); }
+  if (js) { const r = await page.send("Runtime.evaluate", { expression: `(${PAGE_WIN}).eval(${JSON.stringify(js)})`, awaitPromise: true, returnByValue: true }); console.log(`     js -> ${JSON.stringify(r.result?.value)}`); await sleep(400); }
   if (profile) {
     // Three seconds of the page's own time, by function: where a frame goes.
     await page.send("Profiler.enable");
@@ -135,7 +138,7 @@ async function shoot(port, path, seconds, out, { full = false, width = 1600, hei
     console.log("     profile, self time:");
     for (const [k, v] of [...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16)) console.log(`       ${((100 * v) / total).toFixed(1).padStart(5)}%  ${k}`);
   }
-  const ready = await page.send("Runtime.evaluate", { expression: 'document.body.dataset.ready === "1"', returnByValue: true });
+  const ready = await page.send("Runtime.evaluate", { expression: `(${PAGE_DOC}).body?.dataset.ready === "1"`, returnByValue: true });
   if (!ready.result.value) page.problems.push("the page did not say it was ready");
   // Beyond the viewport, without resizing it, so a page spaced in viewport units keeps its proportions.
   const shot = await page.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: full });

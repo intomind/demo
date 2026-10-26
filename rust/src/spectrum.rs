@@ -58,7 +58,7 @@ mod tests {
         let fs = 250.0;
         let x: Vec<f64> = (0..1000).map(|i| (2.0 * PI * 10.0 * i as f64 / fs).sin()).collect();
         let (f, p) = welch(&x, fs, 500);
-        let share = band(&f, &p, 8.0, 13.0) / band(&f, &p, 4.0, 30.0);
-        assert!(share > 0.95, "{share}");
+        let relative = band(&f, &p, 8.0, 13.0) / band(&f, &p, 4.0, 30.0);
+        assert!(relative > 0.95, "{relative}");
     }
 }

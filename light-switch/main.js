@@ -23,10 +23,13 @@ const SETTLE = 2;
 const ROUNDS = 8, PER = 11;
 /** A linear model on 76 numbers needs more windows than that, or it learns the noise. */
 const NEEDED = 77;
+/** Seconds of EEG in a window, and from one window to the next. */
+const SECONDS = 4;
 
-const OFF = { word: "Off", cue: "Rest. Let your mind wander." };
-const ON = { word: "On", cue: "Hold your thought. Count down from three hundred by sevens, or think the thought you chose." };
+const OFF = { word: "Off", task: "Rest. Let your mind wander.", cue: "Rest. Let your mind wander." };
+const ON = { word: "On", task: "Count down from 300 by sevens.", cue: "Hold your thought. Count down from three hundred by sevens, or think the thought you chose." };
 const READY = "Off is resting. On is a thought you hold. Counting down from 300 by sevens works for most people.";
+const DOING = "Do what the demo shows until it changes.";
 
 const HOW = `<p>Off is resting with your eyes open. On is a thought you hold steadily. Counting down from 300 by sevens works for most people, but any thought you can keep up for a minute works, and your IntoMind One never needs to know what it is.</p>
   <ol>
@@ -37,7 +40,16 @@ const HOW = `<p>Off is resting with your eyes open. On is a thought you hold ste
   </ol>`;
 
 const canvas = document.getElementById("stage");
-const big = document.getElementById("big"), word = document.getElementById("word"), sub = document.getElementById("sub");
+const big = document.getElementById("big"), word = document.getElementById("word"), task = document.getElementById("task"), left = document.getElementById("left");
+/** One segment for every round, in the color of Off or On, filling as its round goes by. */
+const segments = Array.from({ length: ROUNDS }, (_, round) => {
+  const s = document.createElement("span");
+  s.className = round % 2 ? "b" : "a";
+  const fill = document.createElement("i");
+  s.append(fill);
+  document.getElementById("rounds").append(s);
+  return fill;
+});
 const ui = shell({ title: "Mind-Controlled Light Switch", line: "Connect your IntoMind One.", about: `
   <p><b>EEG</b>, electroencephalography, is a recording of the brain's electrical activity from electrodes on the scalp. The IntoMind One has a small <b>AI model</b> on its chip, the <b>encoder</b>, which reads four seconds of EEG and summarizes it as 76 numbers, an <b>embedding</b>.</p>
   <p>When you teach the switch, this page collects those embeddings while you rest and while you hold a thought, then fits a <b>custom AI head</b>: a small model that finds the direction through those 76 numbers that best separates your two states. That is <b>machine learning</b> at its plainest, a line drawn through examples. Counting down by sevens works because concentration changes the brain's rhythms in measurable ways, less alpha and more fast activity at the front. Your IntoMind One never knows what the thought is, only whether the signal looks like your On state or your Off state.</p>
@@ -62,13 +74,19 @@ const st = {
   installed: null,
   /** Whether the IntoMind One holds a usable custom AI head in the slot, read from it. */
   onDevice: false,
+  /** For the time left while teaching: whether a window has arrived yet, when the last one did, and the seconds between the last few. */
+  heard: false,
+  last: 0,
+  intervals: [],
+  /** Whether the last window did not count: the line says so, and the time left holds still. */
+  warned: false,
   dim: 1,
   t0: performance.now(),
 };
 
-const teachBtn = ui.opt("Start teaching", teach);
+const teachBtn = ui.opt(`Start teaching · ${Math.round((ROUNDS * (SETTLE + PER) * SECONDS) / 60)} min`, teach);
 const runBtn = ui.opt("Run it on your IntoMind One", run);
-const stopBtn = ui.opt("Stop", stopRun);
+const stopBtn = ui.opt("Stop", () => { if (st.phase === "teaching") st.abort = true; else stopRun(); });
 const againBtn = ui.opt("Teach again", again);
 const saveBtn = ui.opt("Save", saveCard);
 const loadBtn = ui.opt("Install a saved head", () => picker.click());
@@ -79,22 +97,23 @@ document.body.append(picker);
 const picoLink = ui.link("Pico 2 W guide", "../pico/");
 const howBtn = ui.opt("How it works", () => ui.card({ title: "How it works", html: HOW, actions: [{ label: "Close", primary: true }] }));
 ui.sep();
-ui.link("Source", "main.js");
+const rule = ui.opts.lastElementChild;
+const sourceLink = ui.link("Source", "main.js");
 
 function render() {
   const on = device.connected;
   const show = (b, yes) => b.classList.toggle("hide", !yes);
   const idle = st.phase === "idle";
-  ui.opts.classList.toggle("hide", st.phase === "teaching");
+  const teaching = st.phase === "teaching";
   show(teachBtn, idle);
   teachBtn.disabled = !on;
   show(runBtn, st.phase === "trained" || st.phase === "stopped");
-  show(stopBtn, st.phase === "running");
-  show(againBtn, !idle && st.phase !== "teaching");
-  show(saveBtn, st.head !== null && !st.loaded && st.windows.length > 0 && st.phase !== "teaching");
-  show(loadBtn, on && st.phase !== "teaching");
-  show(removeBtn, on && st.onDevice && st.phase !== "teaching");
-  show(picoLink, st.phase !== "teaching");
+  show(stopBtn, st.phase === "running" || teaching);
+  show(againBtn, !idle && !teaching);
+  show(saveBtn, st.head !== null && !st.loaded && st.windows.length > 0 && !teaching);
+  show(loadBtn, on && !teaching);
+  show(removeBtn, on && st.onDevice && !teaching);
+  for (const b of [picoLink, howBtn, rule, sourceLink]) show(b, !teaching);
   if (idle && on) ui.say(READY);
 }
 
@@ -114,12 +133,22 @@ device.on((e) => {
   if (e.type === "auto") { ui.closeCard(); render(); refreshSlot(); if (device.q?.has("teach")) teach(); }
   if (e.type === "embedding" && st.phase === "teaching" && st.current !== null) {
     const c = st.current;
+    const now = performance.now();
+    if (st.heard) {
+      st.intervals.push((now - st.last) / 1000);
+      if (st.intervals.length > 5) st.intervals.shift();
+    }
+    st.heard = true;
+    st.last = now;
     if (c.settle > 0) { c.settle -= 1; st.dropped += 1; }
-    else if (e.flagged) st.dropped += 1;
-    else {
+    else if (e.flagged) {
+      st.dropped += 1;
+      st.warned = true;
+      ui.warn(e.leadoff ? "An electrode lost contact, so those seconds don't count." : "Those seconds had a gap in the signal, so they don't count.");
+    } else {
       st.windows.push({ index: e.index, round: c.round, label: c.label, embedding: e.embedding });
       c.got += 1;
-      sub.textContent = `${c.got} of ${PER} · round ${c.round + 1} of ${ROUNDS}`;
+      if (st.warned) { st.warned = false; ui.say(DOING); }
     }
   }
   if (e.type === "prediction" && st.phase === "running" && e.slot === SLOT) {
@@ -151,9 +180,13 @@ async function teach() {
   st.head = null;
   st.score = null;
   st.loaded = false;
+  st.heard = false;
+  st.last = performance.now();
+  st.intervals = [];
+  st.warned = false;
   render();
   big.classList.remove("hide");
-  ui.say("Do what the demo shows until it changes. Press Escape to stop.");
+  ui.say(DOING);
   for (let round = 0; round < ROUNDS && !st.abort; round++) {
     const label = round % 2;
     const s = label ? ON : OFF;
@@ -161,7 +194,8 @@ async function teach() {
     if (device.q) device.focus = label === 1;
     big.className = `big ${label ? "b" : "a"}`;
     word.textContent = s.word;
-    sub.textContent = `0 of ${PER} · round ${round + 1} of ${ROUNDS}`;
+    task.textContent = s.task;
+    progress();
     beep(label ? 880 : 440);
     speak(s.cue);
     while (st.current.got < PER && !st.abort) await sleep(200);
@@ -329,15 +363,41 @@ function again() {
   render();
 }
 
+/**
+ * The segments and the time left, from the windows still to come. Between
+ * windows they move on with the clock, up to one window, so they never stand
+ * still, except while windows are not counting.
+ */
+function progress() {
+  const c = st.current;
+  if (st.phase !== "teaching" || c === null) return;
+  const each = SETTLE + PER;
+  const done = SETTLE - c.settle + c.got;
+  // The median of the last few intervals, so one pause in the stream does not stretch the rest.
+  const sorted = [...st.intervals].sort((a, b) => a - b);
+  const interval = sorted.length ? sorted[sorted.length >> 1] : SECONDS;
+  const since = st.warned ? 0 : Math.min(1, (performance.now() - st.last) / 1000 / interval);
+  segments.forEach((fill, round) => {
+    const f = round < c.round ? 1 : round > c.round ? 0 : Math.min(1, (done + since) / each);
+    fill.style.width = `${(f * 100).toFixed(2)}%`;
+  });
+  const seconds = Math.max(0, Math.ceil(((ROUNDS - c.round) * each - done - since) * interval));
+  const text = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} left`;
+  if (left.textContent !== text) left.textContent = text;
+}
+
 function frame() {
+  progress();
   const { g, w, h, dpr } = fit(canvas);
   const dark = isDark();
   const t = (performance.now() - st.t0) / 1000;
   field(g, w, h, dark);
   st.led += (st.target - st.led) * 0.12;
   st.dim += ((st.phase === "teaching" ? 0.12 : 1) - st.dim) * 0.08;
-  g.globalAlpha = st.dim;
   drawBoardThemed(g, boardCamera(w, h, { yaw: 0, pitch: 1.25, size: Math.min(w * 0.62, h * 1.3) }), { dark, dpr, led: st.led, t });
+  // While teaching, the background is laid back over the board, in either theme, so the words over it read.
+  g.globalAlpha = 1 - st.dim;
+  field(g, w, h, dark);
   g.globalAlpha = 1;
   requestAnimationFrame(frame);
 }

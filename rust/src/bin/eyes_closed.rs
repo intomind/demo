@@ -1,5 +1,6 @@
-//! Alpha Flower as a program: stream, and print how much of the signal sits
-//! in the alpha band, once a second. Close your eyes and watch the bar grow.
+//! Alpha Flower as a program: stream, and print relative alpha power, the
+//! power from 8 to 13 Hz as a fraction of the power from 4 to 30 Hz, once a
+//! second. Close your eyes and watch the bar grow.
 //!
 //!     cargo run --release --bin eyes_closed -- ["Ada's IntoMind One"]
 
@@ -31,7 +32,7 @@ async fn run() -> Result<(), String> {
             _ = tokio::signal::ctrl_c() => break,
             _ = tick.tick() => {
                 let n = (SECONDS * fs) as usize;
-                let shares: Vec<f64> = lanes.iter().filter(|l| n > 0 && l.len() >= n).filter_map(|lane| {
+                let values: Vec<f64> = lanes.iter().filter(|l| n > 0 && l.len() >= n).filter_map(|lane| {
                     let x: Vec<f64> = lane.iter().skip(lane.len() - n).copied().collect();
                     let mean = x.iter().sum::<f64>() / n as f64;
                     let x: Vec<f64> = x.iter().map(|v| v - mean).collect();
@@ -39,12 +40,12 @@ async fn run() -> Result<(), String> {
                     let wide = band(&f, &p, WIDE.0, WIDE.1);
                     (wide > 0.0).then(|| band(&f, &p, ALPHA.0, ALPHA.1) / wide)
                 }).collect();
-                if shares.is_empty() {
+                if values.is_empty() {
                     println!("waiting for {SECONDS:.0} seconds of signal");
                     continue;
                 }
-                let share = shares.iter().sum::<f64>() / shares.len() as f64;
-                println!("alpha share of 4 to 30 Hz power: {share:5.2}  {}", "#".repeat((share * 60.0) as usize));
+                let relative = values.iter().sum::<f64>() / values.len() as f64;
+                println!("relative alpha power: {relative:5.2}  {}", "#".repeat((relative * 60.0) as usize));
             }
             e = dev.next_event() => match e {
                 None => break,

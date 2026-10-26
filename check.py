@@ -15,8 +15,8 @@ checks, and the exit code says whether the repository is fit to publish:
   repository's README, which is where they say it comes from;
 - no page loads anything from another site;
 - the pages keep the house style: no em dash, no semicolon in prose;
-- every page has a title, a description, and the script that says it is
-  ready;
+- every page has a title, a description, the suite, and the script that
+  says it is ready;
 - nothing tracked carries a personal address or a path on somebody's machine;
 - the Node tests, the Python tests and the Rust tests pass.
 """
@@ -147,7 +147,11 @@ def page_problems(path: pathlib.Path) -> list[str]:
         problems.append(f"{name}: no title")
     if not re.search(r'<meta name="description" content="[^"]{40,}">', text):
         problems.append(f"{name}: no description for search engines")
-    if '<script type="module" src="main.js"></script>' not in text:
+    # Every page loads the suite, which shows the page inside the tab that holds the IntoMind One and runs its main.js there.
+    suite = "lib/suite.js" if path.parent == HERE else "../lib/suite.js"
+    if f'<script type="module" src="{suite}"></script>' not in text:
+        problems.append(f"{name}: does not load the suite")
+    if not (path.parent / "main.js").exists():
         problems.append(f"{name}: no main.js")
     for href in re.findall(r'href="([^"#]+)"', text):
         if href.startswith(("http://", "https://", "data:", "mailto:")):

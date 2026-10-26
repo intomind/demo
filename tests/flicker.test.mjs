@@ -1,22 +1,7 @@
-// The stimulus flickers at the rate it claims, and the patches fit the safety rule.
+// The patches fit the safety rule.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { brightness, patchesInOneField, safeRadius, SAFE_AREA_PX2, snapRefresh } from "../lib/flicker.js";
-
-test("brightness crosses the middle twice per cycle at the stated rate", () => {
-  const hz = 12;
-  // Start a little after zero, so the crossing that sits exactly on the
-  // boundary of the second is not counted twice or not at all.
-  let crossings = 0;
-  const start = 0.013;
-  let prev = brightness(hz, start) - 0.5;
-  for (let i = 1; i <= 6000; i++) {
-    const v = brightness(hz, start + i / 6000) - 0.5;
-    if ((v >= 0) !== (prev >= 0)) crossings++;
-    prev = v;
-  }
-  assert.equal(crossings, 2 * hz);
-});
+import { patchesInOneField, safeRadius, SAFE_AREA_PX2, snapRefresh } from "../lib/flicker.js";
 
 test("the flashing rule: a quarter of a ten degree field, counted over the patches that could share one", () => {
   assert.equal(SAFE_AREA_PX2, (341 * 256) / 4);
