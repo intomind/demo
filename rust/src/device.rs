@@ -70,7 +70,6 @@ impl Device {
             .unwrap_or_default();
         central.start_scan(ScanFilter { services: vec![service] }).await.map_err(bt)?;
         tokio::time::sleep(SCAN).await;
-        let _ = central.stop_scan().await;
         candidates.extend(central.peripherals().await.map_err(bt)?);
         let mut found: Vec<(Peripheral, String)> = Vec::new();
         for p in candidates {
@@ -80,13 +79,15 @@ impl Device {
             let Ok(Some(props)) = p.properties().await else { continue };
             // The system remembers devices it has met before. Only one heard
             // in this scan, which has a signal strength, or one the system
-            // holds a connection to, is here now.
+            // holds a connection to, is here now. Read while the scan still
+            // runs: the system forgets a signal strength when a scan stops.
             let held = p.is_connected().await.unwrap_or(false);
             if !held && (props.rssi.is_none() || !props.services.contains(&service)) {
                 continue;
             }
             found.push((p, props.local_name.or(props.advertisement_name).unwrap_or_else(|| "IntoMind One".into())));
         }
+        let _ = central.stop_scan().await;
         if found.is_empty() {
             return Err("No IntoMind device answered. Turn it on and take it off the charger.".into());
         }
@@ -349,9 +350,12 @@ impl Device {
         self.events.lock().await.recv().await
     }
 
-    /// Let go of the device.
+    /// Let go of the device. The notifications are let go first, while the
+    /// link is still up: let go after it, the Bluetooth library's own thread
+    /// panics on the listener it can no longer remove.
     pub async fn close(self) {
-        let _ = self.peripheral.disconnect().await;
         self.reader.abort();
+        let _ = self.reader.await;
+        let _ = self.peripheral.disconnect().await;
     }
 }
