@@ -8,7 +8,7 @@ import { shell, ready, fit, field, isDark, pickDevice, downloadBytes, esc } from
 import { boardCamera, drawBoardThemed } from "../lib/board.js";
 import { trainHead, blockedFolds, roundPermutation, trainingFile, trainingText, savedHead } from "../lib/train.js";
 import { ENCODER } from "../lib/numbers.js";
-import { protocol as P } from "../vendor/intomind-sdk-1.4.0/index.js";
+import { protocol as P } from "../vendor/intomind-sdk-1.4.1/index.js";
 import { speak, beep } from "../lib/cues.js";
 import { picoPreview } from "../lib/previews.js";
 

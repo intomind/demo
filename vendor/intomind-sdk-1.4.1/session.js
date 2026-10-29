@@ -45,6 +45,8 @@ export class Batch {
     counts;
     /** Lead-off status latched with the most recent sample. */
     leadoff;
+    /** Whether lead-off detection was running when these samples were taken, from the packet's flag. `leadoff` is zero both when every electrode was attached and when nothing was checking, and this tells the two apart. */
+    leadoffActive;
     /** The gain the samples were taken at. */
     gain;
     /** The rate the samples were taken at, or null for a code this contract does not define. */
@@ -60,6 +62,7 @@ export class Batch {
         this.channels = f.channels;
         this.counts = f.counts;
         this.leadoff = f.leadoff;
+        this.leadoffActive = f.leadoffActive ?? false;
         this.gain = f.gain;
         this.sampleRateHz = f.sampleRateHz;
         this.mode = f.mode ?? 0;
@@ -507,6 +510,7 @@ export class Session {
                 channels: info.channels,
                 counts,
                 leadoff: packet.loffStatp,
+                leadoffActive: packet.leadoffActive,
                 gain: packet.gain,
                 sampleRateHz: packet.sps,
                 mode: packet.mode,

@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import * as P from "../vendor/intomind-sdk-1.4.0/protocol.js";
+import * as P from "../vendor/intomind-sdk-1.4.1/protocol.js";
 import { ENCODER, AGE, SEX } from "../lib/numbers.js";
 
 const here = dirname(fileURLToPath(import.meta.url));

@@ -31,14 +31,14 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 
-#: The published @intomind/sdk 1.4.0, file by file, as npm serves it
+#: The published @intomind/sdk 1.4.1, file by file, as npm serves it
 #: (tarball sha1 84c3b2a8b6cc4a21746f92dfe351355d4a70f3d6).
-VENDORED_SDK = HERE / "vendor" / "intomind-sdk-1.4.0"
+VENDORED_SDK = HERE / "vendor" / "intomind-sdk-1.4.1"
 SDK_SHA256 = {
     "digest.js": "8e357d10ea895040331d94e4327a611d58ac3fde22c3b2fee2f74a9fdb38bf47",
     "index.js": "621bbb9b390e76015bd1d1ff8e0096bec101e46099b523a1b3b9b9700a6dd1bb",
     "protocol.js": "d1e895c13730a625002461eef30c81546fa4976d59ca0d766e9d878ca2d51983",
-    "session.js": "e2f2016a23a602f6eeaa393313d68d899004bd817e56d1614641d244c9062235",
+    "session.js": "04cf976b49caa594a5432aa1b5187fc75684e52cc460cd1a3c0eb1cbd4f48b0c",
     "timebase.js": "308d5b6af89e23b59c94a367300f041cf4e98bbe80ac82fad7eab804802da478",
     "transfer.js": "052c394fc0e0a81d3851cac4febb0daa63432c029e47c2fe32da5deb4588485d",
     "web-bluetooth.js": "143f3110067344b07086e5e6bbf8c580ac7086f5eef6f5911176ae593db21a2d",
