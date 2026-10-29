@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use btleplug::api::{Central, Characteristic, Manager as _, Peripheral as _, RetrievePeripheralsOptions, ScanFilter, WriteType};
 use btleplug::platform::{Manager, Peripheral};
@@ -13,7 +13,9 @@ use intomind::embeddings::Form;
 use intomind::protocol::control::{HeadEntry, ModelInfo, Opcode, Status};
 use intomind::protocol::device_info::{capability, DeviceInfo};
 use intomind::protocol::{uuid128, uuid_fill};
-use intomind::{Command, Event, Session, Step, Transfer};
+use intomind::capture::record::{Run, Setup};
+use intomind::capture::recording::Collection;
+use intomind::{Command, Event, HostClocks, Session, Step, Transfer};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -35,11 +37,6 @@ fn fill_of(u: &Uuid) -> Option<u16> {
 
 fn bt(e: btleplug::Error) -> String {
     format!("Bluetooth: {e}")
-}
-
-/// The host's clock, in seconds.
-pub fn now() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0)
 }
 
 /// A connected IntoMind One.
@@ -229,6 +226,12 @@ impl Device {
         make(&self.session.lock().unwrap()).map_err(|e| format!("{e:?}"))
     }
 
+    /// Count the samples from zero again.
+    pub async fn reset_epoch(&self) -> Result<(), String> {
+        let c = self.session.lock().unwrap().reset_epoch();
+        self.request(c, "to count from zero").await.map(drop)
+    }
+
     /// Start the stream of samples.
     pub async fn start(&self) -> Result<(), String> {
         let c = self.session.lock().unwrap().start_stream();
@@ -294,18 +297,25 @@ impl Device {
         self.request(c, "to send embeddings").await.map(drop)
     }
 
-    /// One exchange of clocks, for putting device time on the host's clock.
+    /// One exchange of clocks, for putting device time on the host's
+    /// clocks, both read either side of it.
     pub async fn time_sync(&self) -> Result<(), String> {
         let c = self.session.lock().unwrap().time_sync();
-        let before = now();
+        let before = HostClocks::now();
         let payload = self.request(c, "for its clock").await?;
-        let after = now();
-        self.session.lock().unwrap().on_time_sync(&payload, before, after).map_err(|e| format!("{e:?}"))
+        let after = HostClocks::now();
+        self.session.lock().unwrap().on_time_sync_clocks(&payload, before, after).map_err(|e| format!("{e:?}"))
     }
 
-    /// The device's clock against the host's, once enough exchanges agree.
-    pub fn clock(&self) -> Option<intomind::Fit> {
-        self.session.lock().unwrap().timebase().and_then(|t| t.fit())
+    /// Collect every sample from here, for a recording.
+    pub fn arm_recorder(&self) {
+        self.session.lock().unwrap().arm_recorder();
+    }
+
+    /// Write what was collected as the recording `label`, and return its
+    /// manifest.
+    pub fn save_recording(&self, recordings: &Collection, label: &str, setup: &Setup, run: &Run) -> Result<serde_json::Value, String> {
+        self.session.lock().unwrap().save_recording(recordings, label, setup, run).map_err(|e| e.to_string())
     }
 
     /// Put a head in `slot`, checked there. `progress` hears how far it has got.
