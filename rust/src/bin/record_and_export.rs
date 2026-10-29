@@ -113,9 +113,10 @@ async fn run() -> Result<(), String> {
 
     let dev = Device::connect(name_arg(&args, &["--seconds", "--label"]).as_deref()).await?;
     // Lead-off detection passes a small current through the electrodes, so
-    // it stays as the wearer left it, and the capture says what the device
-    // reports, as the Python package's does.
-    let leadoff = dev.status().await?.loff_statp != 0;
+    // it stays as the wearer left it. Whether it was running comes with every
+    // batch of samples, as the device's own flag, since the protocol has no
+    // way to ask for the setting.
+    let (mut detection_on, mut detection_off) = (false, false);
     for _ in 0..8 {
         dev.time_sync().await?;
     }
@@ -135,6 +136,7 @@ async fn run() -> Result<(), String> {
                 Some(Event::Samples(b)) if b.channels == channels && !b.synthetic => {
                     first.get_or_insert((b.index, b.device_time, b.sample_rate_hz as u32, b.gain, b.mode));
                     counts.extend(&b.counts);
+                    if b.leadoff_active { detection_on = true } else { detection_off = true }
                 }
                 Some(Event::Gap(g)) if first.is_some() => gaps.push(Gap {
                     at_row: (counts.len() / channels) as u64,
@@ -158,6 +160,11 @@ async fn run() -> Result<(), String> {
     let name = dev.name.clone();
     dev.close().await;
     let (first_index, first_device_time, rate, gain, mode) = first.ok_or("No samples arrived.")?;
+    // The manifest's one flag means detection ran for the whole recording.
+    let leadoff = detection_on && !detection_off;
+    if detection_on && detection_off {
+        println!("Lead-off detection was running for part of the recording, so the manifest's leadoff flag is false.");
+    }
     let uv_per_count = 2.0 * info.vref_uv as f64 / (gain as f64 * (1u64 << info.adc_bits) as f64);
 
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;

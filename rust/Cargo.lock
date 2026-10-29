@@ -466,9 +466,9 @@ dependencies = [
 
 [[package]]
 name = "intomind"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a42161297d6de3dc3c51e3824c73cd251f97f2988f29f4aad87adf73ecbeabc7"
+checksum = "86e3ef111905dbe10f1ba80ec057aea12df6976be64c9e9acd7983902d222f64"
 dependencies = [
  "intomind-capture",
  "intomind-pipeline",
@@ -478,9 +478,9 @@ dependencies = [
 
 [[package]]
 name = "intomind-capture"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bcba29e4c728f65932dd070c55c1578a6aa85b2f807ed500c49b8cd81f9ac15"
+checksum = "dee12653464590cd3492be6051d53cd059dc9947604a006e2d1f2dbc6eae1ed5"
 dependencies = [
  "intomind-protocol",
  "serde",
@@ -505,9 +505,9 @@ dependencies = [
 
 [[package]]
 name = "intomind-pipeline"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20b0160c5fa22404a60401f936294c1f4217689d919c28c41e1da6fd3bb4bb75"
+checksum = "cfc5726be026b46c5411ecc6a1b0e4a22368b6fc2ba0e56ae500e1e38dd4d116"
 dependencies = [
  "intomind-protocol",
  "libm",
@@ -515,9 +515,9 @@ dependencies = [
 
 [[package]]
 name = "intomind-protocol"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2457315ef1dd4a270b67a9c7dc7a5e805b806134169621804892b4293f5d85ef"
+checksum = "0997bde3faef0d80da8b39c4ea6d63a282f26d7b39652b041dde4cb5bbe6958b"
 
 [[package]]
 name = "itertools"
