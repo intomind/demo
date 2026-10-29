@@ -203,7 +203,7 @@ async fn run() -> Result<(), String> {
     let exact = if worst == 0.0 { "every value exact".to_string() } else { format!("largest error {worst:.6} microvolts") };
     println!("BDF at {}: {rows} samples, {channels} channels at {rate} per second, {exact}.", bdf.display());
     if !manifest.gaps.is_empty() {
-        println!("The recording has {} breaks, listed in its manifest. A BDF file has no way to show them, so its samples run on across them.", manifest.gaps.len());
+        println!("The recording has {} breaks, listed in its manifest. This file runs its samples on across them. The Python API's export writes each sample at its recorded time, with a placeholder under a label where samples were lost.", manifest.gaps.len());
     }
     println!("To open it in Python with MNE: mne.io.read_raw_bdf(path).");
     Ok(())

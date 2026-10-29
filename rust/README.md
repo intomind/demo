@@ -23,7 +23,7 @@ answers, as in `cargo run --release --bin age -- "Ada's IntoMind One"`.
 | `teach_it` | Mind-Controlled Light Switch | Two states with spoken cues, a custom AI head trained the way the Python API trains it, scored on held-out blocks, uploaded to slot 2 and run. With `--from`, reproduces the same custom AI head, byte for byte, from the training data the Mind-Controlled Light Switch demo saves, with no device. |
 | `light_switch_pi` | Mind-Controlled Light Switch | On a Raspberry Pi: runs your custom AI head in slot 2 and drives an LED on a GPIO pin from it. |
 | `remove_head` | Mind-Controlled Light Switch | Takes the custom AI head out of slot 2 on your IntoMind One, or out of another user slot with `--slot`. |
-| `record_and_export` | | Records a minute in the published capture format, with its manifest and checksums, and writes the same samples as a BDF file. |
+| `record_and_export` | | Records a minute in the published capture format, with its manifest and checksums, and writes the same samples, one after another, as a BDF file. A break in the recording is listed in the manifest and not shown in the BDF. |
 
 `src/published.rs` holds the published figures the programs quote, and the
 repository's `check.py` holds it to the heads repository's README like the
