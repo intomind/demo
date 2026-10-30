@@ -16,7 +16,7 @@ use intomind::capture::record::{Run, Setup};
 use intomind::capture::recording::Collection;
 use intomind_demos::device::Device;
 use intomind_demos::{flag, name_arg};
-use serde_json::json;
+use intomind::capture::json::Value;
 
 async fn run() -> Result<(), String> {
     let args: Vec<String> = std::env::args().collect();
@@ -65,11 +65,16 @@ async fn run() -> Result<(), String> {
     dev.stop().await?;
     // This program carried the samples, so it names itself as their adapter.
     let setup = Setup {
-        adapter: Some(json!({"name": "intomind-demos", "version": env!("CARGO_PKG_VERSION"), "first_party": true, "transport": "bluetooth-le"})),
+        adapter: Some(Value::obj([
+            ("name", "intomind-demos".into()),
+            ("version", env!("CARGO_PKG_VERSION").into()),
+            ("first_party", true.into()),
+            ("transport", "bluetooth-le".into()),
+        ])),
         ..Setup::default()
     };
     let mut run = Run::default();
-    run.extra.insert("experiment".into(), json!("demo-record"));
+    run.extra.set("experiment", "demo-record".into());
     let meta = dev.save_recording(&recordings, &label, &setup, &run)?;
     dev.close().await;
     println!("Saved {} samples as {label} in {}, with its manifest and checksums.", meta["n"], recordings.dir().display());

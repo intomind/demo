@@ -7,7 +7,7 @@ publish = false
 description = "The IntoMind Demo Suite's demos as Rust programs, on the published intomind crate."
 
 [dependencies]
-intomind = "1.4.2"
+intomind = "1.4.3"
 btleplug = "0.13"
 futures = "0.3"
 serde_json = "1"

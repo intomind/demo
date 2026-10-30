@@ -31,9 +31,9 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 
-#: The published @intomind/sdk 1.4.2, file by file, as npm serves it: every module
-#: a browser loads (tarball sha1 edcf28ca7f4858847ea3fd37d6be1569a13c5221).
-VENDORED_SDK = HERE / "vendor" / "intomind-sdk-1.4.2"
+#: The published @intomind/sdk 1.4.3, file by file, as npm serves it: every module
+#: a browser loads (tarball sha1 1f5082d98a7cee80c3cc3deb552259a96b397684).
+VENDORED_SDK = HERE / "vendor" / "intomind-sdk-1.4.3"
 SDK_SHA256 = {
     "capture/clock.js": "e1f3eb608760564df74a6729883e36d8b038baee1b4ec6187f4b4bcb7110bd4c",
     "capture/edf.js": "331dcf88638d0e8bb1c45ce362e431f21219d15598e9d13aada1d3b93a21f288",
@@ -49,7 +49,7 @@ SDK_SHA256 = {
     "capture/record.js": "61b3dd76bf611e4b3c9c94fa503784540e437df1abe1794b89e947330633a20f",
     "capture/recording.js": "15869e22884de1704ece152f475feef2151e113ae290b663c7de1e0fdf98dd50",
     "capture/unprintable.js": "fc6d2da92cfd479b084df36377b45a7a505940968d4496678853ed586e795a53",
-    "capture/version.js": "aaeaee5e405a486d953b7f2c01a658e32bb6631495b478cda60d0b8d4f732cd9",
+    "capture/version.js": "b169a5bb77b71e0596562337a2217a54ef425c62fca388b7112e09ce2e057a37",
     "capture/zip.js": "34c049a494aff388e8fb37bb0cb85d70170ae2efa1d741ce933af042dcd2c149",
     "digest.js": "8e357d10ea895040331d94e4327a611d58ac3fde22c3b2fee2f74a9fdb38bf47",
     "index.js": "5833940a98f7fa8c7650be0f168ba9f4755e0833da425b17a03f6a87e4247fe3",

@@ -315,7 +315,7 @@ impl Device {
 
     /// Write what was collected as the recording `label`, and return its
     /// manifest.
-    pub fn save_recording(&self, recordings: &Collection, label: &str, setup: &Setup, run: &Run) -> Result<serde_json::Value, String> {
+    pub fn save_recording(&self, recordings: &Collection, label: &str, setup: &Setup, run: &Run) -> Result<intomind::capture::json::Value, String> {
         self.session.lock().unwrap().save_recording(recordings, label, setup, run).map_err(|e| e.to_string())
     }
 
