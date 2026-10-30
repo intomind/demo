@@ -10,7 +10,8 @@
  * characteristics, subscribe, and hand every notification to the session.
  * What the notifications mean is the session's business.
  */
-import { DEVICE_INFO, FILL, OPCODES, SERVICE, uuid, } from "./protocol.js";
+import { hostClocks } from "./capture/clock.js";
+import { DEVICE_INFO, FILL, OPCODES, SERVICE, decodeTimeSync, uuid, } from "./protocol.js";
 import { Session } from "./session.js";
 /** Thrown when the page cannot reach Web Bluetooth at all. */
 export class NoBluetooth extends Error {
@@ -108,13 +109,17 @@ export class Connection {
     /**
      * One time exchange, with the host clock read either side of it. The
      * device's answer is known to lie between those two readings, which is
-     * the whole uncertainty in this one exchange.
+     * the whole uncertainty in this one exchange. The session's `clock`, which
+     * dates a recording, takes the same exchange on both host clocks, as the
+     * Python library's device does.
      */
     async timeSync() {
         const waiting = this.#await(OPCODES.time_sync);
         const before = hostClock();
+        const beforeClocks = hostClocks();
         await this.send(this.session.timeSync());
-        const { answer, at } = await waiting;
+        const { answer, at, clocks } = await waiting;
+        this.session.clock?.observe(decodeTimeSync(answer.payload), beforeClocks, clocks);
         return this.session.onTimeSync(answer.payload, before, at);
     }
     /**
@@ -204,9 +209,9 @@ export class Connection {
         return new Promise((resolve, reject) => {
             const waiter = {
                 opcode,
-                settle: (answer, at) => {
+                settle: (answer, at, clocks) => {
                     clearTimeout(timer);
-                    resolve({ answer, at });
+                    resolve({ answer, at, clocks });
                 },
             };
             const timer = setTimeout(() => {
@@ -221,6 +226,7 @@ export class Connection {
     /** @internal Called by `connect` for every notification that arrives. */
     deliver(characteristic, bytes) {
         const at = hostClock();
+        const clocks = hostClocks();
         if (characteristic === FILL.UPDATE_CONTROL) {
             // An update answer is not a session event. It goes to whichever
             // transfer asked for it.
@@ -233,7 +239,7 @@ export class Connection {
             if (event.type === "answer") {
                 const i = this.#waiting.findIndex((w) => w.opcode === event.answer.opcode);
                 if (i >= 0)
-                    this.#waiting.splice(i, 1)[0].settle(event.answer, at);
+                    this.#waiting.splice(i, 1)[0].settle(event.answer, at, clocks);
             }
             for (const listener of this.#listeners)
                 listener(event);

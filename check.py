@@ -31,17 +31,33 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 
-#: The published @intomind/sdk 1.4.1, file by file, as npm serves it
-#: (tarball sha1 84c3b2a8b6cc4a21746f92dfe351355d4a70f3d6).
-VENDORED_SDK = HERE / "vendor" / "intomind-sdk-1.4.1"
+#: The published @intomind/sdk 1.4.2, file by file, as npm serves it: every module
+#: a browser loads (tarball sha1 edcf28ca7f4858847ea3fd37d6be1569a13c5221).
+VENDORED_SDK = HERE / "vendor" / "intomind-sdk-1.4.2"
 SDK_SHA256 = {
+    "capture/clock.js": "e1f3eb608760564df74a6729883e36d8b038baee1b4ec6187f4b4bcb7110bd4c",
+    "capture/edf.js": "331dcf88638d0e8bb1c45ce362e431f21219d15598e9d13aada1d3b93a21f288",
+    "capture/errors.js": "f6ff93d9899bf507ffba12de1281b0e85a08a3b5f3020d98e6e995d30bd32f89",
+    "capture/export.js": "b0c8c5588cd040ee7f18c035917dbd00f1b41dd9b9fba875cc19b68643d728da",
+    "capture/hdf5.js": "46eb49370e0a2dbc718fc5777e7f7359933fd2a530e00f997f79d6fa71c4cc74",
+    "capture/index.js": "07df0cfb975db5412a89666ffe6c228d943d1c8744ab432518435942dd0b753f",
+    "capture/montage.js": "a0d89ccfb1348c76f7220d4e3be3586553ae707af810a8283cf992b84b791b05",
+    "capture/npy.js": "7e21cf08a9f4fe8a17786bfe848182a59ccea5e1328d82a335ef6f701486b20f",
+    "capture/placement.js": "15c57873ad523f8d4eb9017b23843d7e1ee3288a1025235d537fc4026b2dda26",
+    "capture/pyfmt.js": "37264029ba58973bed5b8b7b08e8f5436c3c7d1170b0ca9f979403cc873e5a48",
+    "capture/pyjson.js": "d60c7fd0e471e8d596b8a5b5655bc3b22a7b35938b119a03ee1ae6ed32a73566",
+    "capture/record.js": "61b3dd76bf611e4b3c9c94fa503784540e437df1abe1794b89e947330633a20f",
+    "capture/recording.js": "15869e22884de1704ece152f475feef2151e113ae290b663c7de1e0fdf98dd50",
+    "capture/unprintable.js": "fc6d2da92cfd479b084df36377b45a7a505940968d4496678853ed586e795a53",
+    "capture/version.js": "aaeaee5e405a486d953b7f2c01a658e32bb6631495b478cda60d0b8d4f732cd9",
+    "capture/zip.js": "34c049a494aff388e8fb37bb0cb85d70170ae2efa1d741ce933af042dcd2c149",
     "digest.js": "8e357d10ea895040331d94e4327a611d58ac3fde22c3b2fee2f74a9fdb38bf47",
-    "index.js": "621bbb9b390e76015bd1d1ff8e0096bec101e46099b523a1b3b9b9700a6dd1bb",
+    "index.js": "5833940a98f7fa8c7650be0f168ba9f4755e0833da425b17a03f6a87e4247fe3",
     "protocol.js": "d1e895c13730a625002461eef30c81546fa4976d59ca0d766e9d878ca2d51983",
-    "session.js": "04cf976b49caa594a5432aa1b5187fc75684e52cc460cd1a3c0eb1cbd4f48b0c",
+    "session.js": "a6176ca817046717e28494f025fe73445e6d9f0790e7c18f74cdf6e759692175",
     "timebase.js": "308d5b6af89e23b59c94a367300f041cf4e98bbe80ac82fad7eab804802da478",
     "transfer.js": "052c394fc0e0a81d3851cac4febb0daa63432c029e47c2fe32da5deb4588485d",
-    "web-bluetooth.js": "143f3110067344b07086e5e6bbf8c580ac7086f5eef6f5911176ae593db21a2d",
+    "web-bluetooth.js": "7ce58c37e11c588f0286fa3e363e846e8e9afb4e7792b36c074434c7c800eb9d",
 }
 VENDORED_HEADS = HERE / "vendor" / "heads"
 PAGES = ["index.html"] + sorted(str(p.relative_to(HERE)) for p in HERE.glob("*/index.html") if p.parent.name not in ("vendor", "tests", "assets", "lib", "python"))
@@ -71,7 +87,7 @@ def main() -> int:
 
 def vendored_sdk_drifted() -> list[str]:
     problems = []
-    found = {p.name for p in VENDORED_SDK.glob("*.js")}
+    found = {str(p.relative_to(VENDORED_SDK)) for p in VENDORED_SDK.rglob("*.js")}
     if found != set(SDK_SHA256):
         problems.append(f"the vendored SDK holds {sorted(found)}, not {sorted(SDK_SHA256)}")
     for name, want in SDK_SHA256.items():

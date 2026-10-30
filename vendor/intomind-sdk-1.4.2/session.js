@@ -4,9 +4,19 @@
  * Bytes go in, events come out, and commands go back. Nothing here performs
  * input or output, so the same code runs behind a browser's Bluetooth
  * stack, a desktop one, or a test with no Bluetooth at all.
+ *
+ * A recording is made here too, as the Python library's recorder makes one:
+ * give each time exchange with both host clocks to `onTimeSyncClocks`, which
+ * the browser connection's `timeSync` does itself, arm the recorder with
+ * `armRecorder`, and take what it collected with
+ * `saveRecording`, whose files `capture.Collection` reads back and
+ * `capture/node` writes into a folder.
  */
-import { CODE_BY_GAIN, CODE_BY_RATE, DeviceInfo, FILL, Invalid, continuity, decodeDeviceInfo, decodeEmbedding, decodePacket, decodePrediction, decodeResponse, decodeStatus, decodeTimeSync, encodeRequest, microvolts, BIAS_MODES, EMBEDDING_FORMS, IDENTIFY_MAX_SECONDS, INDICATOR_LEVELS, checkChain, encodeChain, encodePredictionInput, MODES, NAME_MAX_COMPOSED, PRODUCT_NAME, composeName, encodeModelInterval, encodeNameParts, nameFits, } from "./protocol.js";
+import { CODE_BY_GAIN, CODE_BY_RATE, DeviceInfo, FILL, Invalid, continuity, decodeDeviceInfo, decodeEmbedding, decodePacket, decodePrediction, decodeResponse, decodeStatus, decodeTimeSync, encodeRequest, microvolts, BIAS_MODES, EMBEDDING_FORMS, IDENTIFY_MAX_SECONDS, INDICATOR_LEVELS, checkChain, encodeChain, encodePredictionInput, MODES, OPCODES, NAME_MAX_COMPOSED, PRODUCT_NAME, composeName, encodeModelInterval, encodeNameParts, nameFits, } from "./protocol.js";
 import { Exchange, Timebase } from "./timebase.js";
+import { Clock } from "./capture/clock.js";
+import { CaptureError } from "./capture/errors.js";
+import { Take, save } from "./capture/record.js";
 /** Something a caller asked of a device that the device has not offered. */
 export class SessionError extends Error {
     /** Build one with the message explaining what was asked for. */
@@ -84,6 +94,7 @@ export class Batch {
         return microvolts(this.count(row, channel), info.vrefUv, this.gain, info.adcBits);
     }
 }
+const MODE_WORDS = ["normal", "test", "short", "synthetic"];
 /** One device. */
 export class Session {
     #info = null;
@@ -91,6 +102,13 @@ export class Session {
     #previous = null;
     /** The first index and device time of the last few packets passed on, what a copy is recognized by. */
     #recent = [];
+    /** The map a recording's samples are dated with, as the Python library keeps it. */
+    #clock = null;
+    #streaming = false;
+    #leadoffSetting = null;
+    /** What `setLeadoff` last asked for, until the device accepts it: 0 nothing, 1 off, 2 on. */
+    #leadoffAsked = 0;
+    #recorder = null;
     /** Samples the device's own indexing says never arrived, over this session. */
     samplesLost = 0;
     /** Breaks counted as a re-base rather than a loss, over this session. */
@@ -99,10 +117,24 @@ export class Session {
     undecodable = 0;
     /** Data packets delivered twice by the host and dropped: see the "duplicate" event. */
     duplicates = 0;
+    /**
+     * Breaks the device announced over this session, counted as the Python
+     * library counts them: a packet flagged as a discontinuity, which the
+     * first packet of every stream is, or one whose index is not the next
+     * expected.
+     */
+    gapsAnnounced = 0;
+    /**
+     * 1.4: whether USB power ended the last stream. A device that does not
+     * record while plugged in ends the natural signal's stream when USB power
+     * appears, and its packets say so.
+     */
+    endedByUsb = false;
     /** What was read from the device info characteristic. */
     onDeviceInfo(bytes) {
         const info = decodeDeviceInfo(bytes);
         this.#timebase = new Timebase(info.tickHz);
+        this.#clock = new Clock(info.tickHz);
         this.#info = info;
         return info;
     }
@@ -151,8 +183,13 @@ export class Session {
     startStream() {
         return this.#command("start_stream");
     }
-    /** Ask the device to stop streaming. */
+    /**
+     * Ask the device to stop streaming. From here the host treats the stream
+     * as stopped, answered or not, and the clock's map may move again.
+     */
     stopStream() {
+        this.#streaming = false;
+        this.#clock?.thaw();
         return this.#command("stop_stream");
     }
     /**
@@ -196,6 +233,7 @@ export class Session {
     /** Turn lead-off detection on or off. */
     setLeadoff(on) {
         this.#require("leadoff");
+        this.#leadoffAsked = on ? 2 : 1;
         return this.#command("set_leadoff", on ? 1 : 0);
     }
     /**
@@ -211,6 +249,85 @@ export class Session {
         if (this.#timebase === null)
             throw new NoDeviceInfo();
         return this.#timebase.observe(new Exchange(before, after, ticks));
+    }
+    /**
+     * The answer to a time request, with both host clocks read either side of
+     * it, which is what a recording's clock needs: `capture.hostClocks()` reads
+     * them, monotonic first. The single-clock fit `onTimeSync` keeps is fed
+     * from the wall clock too, so `hostTime` still answers.
+     */
+    onTimeSyncClocks(payload, before, after) {
+        const ticks = decodeTimeSync(payload);
+        if (this.#timebase === null)
+            throw new NoDeviceInfo();
+        this.#timebase.observe(new Exchange(before.realtime, after.realtime, ticks));
+        this.#clock?.observe(ticks, before, after);
+    }
+    /**
+     * The device's clock as the Python library maps it: fitted against the
+     * host's monotonic clock and anchored to its wall clock, and held still
+     * while a stream runs. A recording's samples are dated with it and carry
+     * its record. Null before device info.
+     */
+    get clock() {
+        return this.#clock;
+    }
+    /** Whether the device is streaming, as far as this host knows: from a start the device accepted until a stop was asked for, or USB power ended the stream. */
+    get streaming() {
+        return this.#streaming;
+    }
+    /**
+     * Whether lead-off detection is running: as the device's packets last
+     * declared it, or as this host last set it. Null until either has said,
+     * because the protocol has no read for the setting.
+     */
+    get leadoffSetting() {
+        return this.#leadoffSetting;
+    }
+    /**
+     * Arm the recorder: from here every sample and packet is collected until
+     * `disarmRecorder`, with what was collected before dropped.
+     *
+     * Arm on a count that starts again at zero, as the Python library does. On
+     * a stream that is running, send `resetEpoch`, let the packets numbered
+     * before it drain, about fifty milliseconds, then arm. On one that is not,
+     * arm, then send `resetEpoch` and `startStream`.
+     */
+    armRecorder() {
+        this.#recorder = { take: new Take(), armed: true, gapsAtArm: this.gapsAnnounced };
+    }
+    /** Stop collecting. What was collected stays, for `saveRecording`. */
+    disarmRecorder() {
+        if (this.#recorder !== null)
+            this.#recorder.armed = false;
+    }
+    /** What the recorder has collected since it was armed, or null before it was. */
+    get recorded() {
+        return this.#recorder?.take ?? null;
+    }
+    /**
+     * What the recorder collected as the recording `label`, with the manifest
+     * the Python library writes: the device's own facts, its clock's record
+     * now, and the breaks announced while armed, with what `setup` declares
+     * and `run` adds. The recording comes back as its files' bytes;
+     * `capture/node`'s `writeRecording` puts them in a folder.
+     */
+    saveRecording(label, setup = {}, run = {}) {
+        const info = this.#info;
+        if (info === null)
+            throw new CaptureError("read device info first: a recording states what the device said");
+        const r = this.#recorder;
+        return save(label, r?.take ?? new Take(), {
+            deviceId: info.deviceId,
+            firmware: info.firmware.join("."),
+            protocol: `${info.protocol[0]}.${info.protocol[1]}`,
+            tickHz: info.tickHz,
+            vrefUv: info.vrefUv,
+            adcBits: info.adcBits,
+            channels: info.channels,
+            clock: this.#clock?.quality() ?? null,
+            gapsInRun: Math.max(0, this.gapsAnnounced - (r?.gapsAtArm ?? 0)),
+        }, setup, run);
     }
     /** Zero the sample index and start a fresh epoch. */
     resetEpoch() {
@@ -419,7 +536,11 @@ export class Session {
             case FILL.STATUS:
                 return this.#decoded(characteristic, () => ({ type: "status", status: decodeStatus(bytes) }));
             case FILL.CONTROL_RESPONSE:
-                return this.#decoded(characteristic, () => ({ type: "answer", answer: decodeResponse(bytes) }));
+                return this.#decoded(characteristic, () => {
+                    const answer = decodeResponse(bytes);
+                    this.#onAnswer(answer);
+                    return { type: "answer", answer };
+                });
             case FILL.PREDICTIONS:
                 return this.#decoded(characteristic, () => ({
                     type: "prediction",
@@ -440,6 +561,28 @@ export class Session {
         }
         catch {
             return this.#undecodable(characteristic);
+        }
+    }
+    /**
+     * What an answer changes here: a start the device accepted holds the
+     * clock's map still under the stream, and a lead-off setting it accepted
+     * is the setting.
+     */
+    #onAnswer(answer) {
+        if (!answer.ok)
+            return;
+        if (answer.opcode === OPCODES.start_stream) {
+            this.#streaming = true;
+            this.endedByUsb = false;
+            this.#clock?.freeze();
+        }
+        else if (answer.opcode === OPCODES.set_leadoff) {
+            const asked = this.#leadoffAsked;
+            this.#leadoffAsked = 0;
+            if (asked === 1)
+                this.#leadoffSetting = false;
+            else if (asked === 2)
+                this.#leadoffSetting = true;
         }
     }
     #undecodable(characteristic) {
@@ -476,6 +619,12 @@ export class Session {
         this.#recent.push(key);
         if (this.#recent.length > 8)
             this.#recent.shift();
+        // A break as the Python library counts one, for a recording: the packet
+        // says so, which the first of every stream does, or its index is not the
+        // next.
+        const flagged = packet.discontinuity || (previous !== null && packet.index !== (previous.index + previous.nSamples) >>> 0);
+        if (flagged)
+            this.gapsAnnounced += 1;
         if (previous !== null) {
             const verdict = continuity(previous.index, previous.nSamples, packet.index, packet.discontinuity);
             if (verdict.broken) {
@@ -497,27 +646,64 @@ export class Session {
             }
         }
         this.#previous = { index: packet.index, nSamples: packet.nSamples, deviceTime: packet.deviceTime };
+        // 1.4: a device that does not record while plugged in ends the natural
+        // signal's stream when USB power appears, and says so in every packet
+        // from then on. The samples already converted are still delivered.
+        const [major, minor] = info.protocol;
+        if (packet.usbPresent && !packet.synthetic && this.#streaming && (major > 1 || (major === 1 && minor >= 4))) {
+            this.#streaming = false;
+            this.#clock?.thaw();
+            this.endedByUsb = true;
+        }
+        // The packet says whether detection was running: the one read of the
+        // setting the protocol offers.
+        this.#leadoffSetting = packet.leadoffActive;
         const counts = new Int32Array(packet.nSamples * info.channels);
         for (let row = 0; row < packet.nSamples; row++) {
             for (let c = 0; c < info.channels; c++)
                 counts[row * info.channels + c] = packet.counts[row][c];
         }
-        events.push({
-            type: "samples",
-            batch: new Batch({
-                index: packet.index,
-                deviceTime: packet.deviceTime,
-                channels: info.channels,
-                counts,
-                leadoff: packet.loffStatp,
-                leadoffActive: packet.leadoffActive,
-                gain: packet.gain,
-                sampleRateHz: packet.sps,
-                mode: packet.mode,
-                synthetic: packet.synthetic,
-            }),
+        const batch = new Batch({
+            index: packet.index,
+            deviceTime: packet.deviceTime,
+            channels: info.channels,
+            counts,
+            leadoff: packet.loffStatp,
+            leadoffActive: packet.leadoffActive,
+            gain: packet.gain,
+            sampleRateHz: packet.sps,
+            mode: packet.mode,
+            synthetic: packet.synthetic,
         });
+        this.#collect(batch, info, flagged);
+        events.push({ type: "samples", batch });
         return events;
+    }
+    /**
+     * Give an armed recorder the packet and its samples, each dated as the
+     * Python library dates it: the packet's device time stepped by the rate
+     * for each sample after the first, and the clock's map now.
+     */
+    #collect(b, info, flagged) {
+        const r = this.#recorder;
+        if (r === null || !r.armed)
+            return;
+        const rate = b.sampleRateHz;
+        r.take.packet({
+            index: b.index,
+            deviceTime: b.deviceTime,
+            gain: b.gain,
+            sampleRateHz: rate,
+            mode: MODE_WORDS[b.mode & 3],
+            synthetic: b.synthetic,
+        });
+        const tickPer = rate !== null && rate > 0 ? info.tickHz / rate : 0;
+        const rows = b.rows;
+        for (let i = 0; i < rows; i++) {
+            const ticks = tickPer === 0 ? b.deviceTime : BigInt(Math.trunc(Number(b.deviceTime) + i * tickPer));
+            const host = this.#clock !== null ? this.#clock.hostTime(ticks) : Number(ticks) / info.tickHz;
+            r.take.sample(BigInt(b.index) + BigInt(i), ticks, host, b.counts.subarray(i * b.channels, (i + 1) * b.channels), b.leadoff, flagged && i === 0, b.leadoffActive);
+        }
     }
 }
 //# sourceMappingURL=session.js.map

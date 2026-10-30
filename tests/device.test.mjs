@@ -4,7 +4,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { protocol as P } from "../vendor/intomind-sdk-1.4.1/index.js";
+import { protocol as P } from "../vendor/intomind-sdk-1.4.2/index.js";
 import { Device, MOVED, ANOTHER_PROGRAM, RECONNECTING, OUT_OF_REACH, NO_ANSWER, CHOOSE, BLUETOOTH_OFF, USB } from "../lib/device.js";
 
 const NAMES = Object.fromEntries(Object.entries(P.OPCODES).map(([name, op]) => [op, name]));
